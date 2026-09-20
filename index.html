@@ -1,0 +1,1961 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IncAttendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --bg: #f6f6f8; --surface: #fff; --surface-2: #fafafb; --ink: #18181b; --ink-2: #52525b; --muted: #8e8e99; --line: #e7e7ec; --line-2: #f1f1f4;
+    --accent: #4f46e5; --accent-hover: #4338ca; --accent-soft: #eef0fe;
+    --ok: #15803d; --bad: #dc2626; --bad-soft: #fef2f2; --bad-line: #fbd5d5; --warn: #a16207; --warn-soft: #fefbe8; --warn-line: #f3e3a3;
+    --radius: 12px; --control-h: 40px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  button { font: inherit; color: inherit; }
+  .svg { width: 16px; height: 16px; display: block; flex: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40; }
+  .topbar-in { max-width: 1080px; margin: 0 auto; padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; flex: none; }
+  .tabs { display: flex; gap: 4px; margin-left: auto; height: 100%; }
+  .tabs button { border: 0; background: none; padding: 0 12px; cursor: pointer; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; border-top: 2px solid transparent; white-space: nowrap; }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- Layout ---------- */
+  main { padding: 28px 20px 64px; }
+  .page { max-width: 1080px; margin: 0 auto; }
+  .page.narrow { max-width: 720px; }
+  h1 { font-size: 24px; font-weight: 700; letter-spacing: -.4px; margin: 0 0 20px; line-height: 1.25; }
+  .page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .page-head h1 { margin: 0; flex: 1; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; min-width: 0; }
+  .card.flush { padding: 0; scroll-margin-top: 72px; }
+  .card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .card-title h2, .card-title label { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
+  .card-title p { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+  /* ---------- Form controls ---------- */
+  .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .field { min-width: 0; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
+  .field-note { font-size: 12.5px; color: var(--warn); margin-top: 6px; }
+  input, select, textarea { width: 100%; min-width: 0; font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
+  input:not([type=checkbox]), select { height: var(--control-h); }
+  input:hover, textarea:hover { border-color: #d6d6de; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input[type=search]::-webkit-search-cancel-button { cursor: pointer; }
+  ::placeholder { color: var(--muted); opacity: 1; }
+  textarea { display: block; min-height: 92px; resize: vertical; line-height: 1.55; }
+  /* Date inputs can't take a placeholder, so show our own while empty (required + empty = :invalid) */
+  .date-field { position: relative; min-width: 0; }
+  .date-field input { cursor: pointer; }
+  .date-field .ph { display: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; white-space: nowrap; }
+  .date-field input:invalid:not(:focus) { color: transparent; }
+  .date-field input:invalid:not(:focus)::-webkit-datetime-edit { color: transparent; }
+  .date-field input:invalid:not(:focus) + .ph { display: block; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--control-h); font-weight: 600; padding: 0 16px; border-radius: 8px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; transition: background .15s, border-color .15s; }
+  .btn:hover:not(:disabled) { background: var(--surface-2); border-color: #d6d6de; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .link { border: 0; background: none; padding: 2px 0; cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
+  .link:hover { text-decoration: underline; }
+  .link.muted { color: var(--muted); }
+  .link.muted:hover { color: var(--ink-2); }
+  .icon-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; flex: none; }
+  .icon-btn:hover { background: var(--line-2); color: var(--ink); }
+  .icon-btn.danger:hover { background: var(--bad-soft); color: var(--bad); }
+
+  /* ---------- Searchable dropdown (wraps a hidden native <select>) ---------- */
+  .combo { position: relative; min-width: 0; }
+  .combo.open { z-index: 35; }
+  .combo-btn { width: 100%; height: var(--control-h); display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; color: var(--ink); padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .combo-btn:hover { border-color: #d6d6de; }
+  .combo-btn:focus-visible, .combo.open .combo-btn { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .combo-val { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .combo-val.placeholder { color: var(--muted); }
+  .combo.has-value .combo-val { margin-right: 26px; }
+  .combo-btn .svg { width: 14px; height: 14px; color: var(--muted); transition: transform .15s; }
+  .combo.open .combo-btn .svg { transform: rotate(180deg); }
+  .combo-clear { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 5px; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+  .combo-clear:hover { background: var(--line-2); color: var(--ink); }
+  .combo-clear .svg { width: 13px; height: 13px; }
+  .combo-pop { position: absolute; top: calc(100% + 4px); left: 0; width: max(100%, 300px); max-width: calc(100vw - 24px); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.25); overflow: hidden; }
+  .combo-pop.right { left: auto; right: 0; }
+  .combo-pop.up { top: auto; bottom: calc(100% + 4px); }
+  .combo-search-wrap { padding: 8px; border-bottom: 1px solid var(--line); }
+  .combo-search-wrap input { height: 36px; padding: 0 10px; }
+  .combo-list { max-height: min(280px, 45vh); overflow: auto; padding: 4px; overscroll-behavior: contain; }
+  .combo-group { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 8px 10px 4px; }
+  .combo-opt { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13.5px; line-height: 1.35; }
+  .combo-opt.active { background: var(--accent-soft); }
+  .combo-opt.selected { color: var(--accent); font-weight: 600; }
+  .combo-opt span { flex: 1; min-width: 0; }
+  .combo-opt .svg { width: 14px; height: 14px; }
+  .combo-opt mark { background: #fef08a; color: inherit; border-radius: 2px; }
+  .combo-empty { padding: 14px 10px; color: var(--muted); font-size: 13px; text-align: center; }
+
+  /* ---------- Take attendance ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips:not(:empty) { margin-top: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; padding: 3px 3px 3px 10px; border-radius: 6px; font-size: 12.5px; line-height: 1.4; background: var(--bad-soft); border: 1px solid var(--bad-line); }
+  .chip b { font-weight: 600; color: var(--bad); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip button { flex: none; border: 0; background: none; color: var(--muted); cursor: pointer; width: 22px; height: 22px; border-radius: 4px; display: grid; place-items: center; }
+  .chip button:hover { color: var(--bad); background: #fff; }
+  .chip button .svg { width: 12px; height: 12px; }
+  .chip.warn { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); padding-right: 10px; }
+  .chip.warn b { color: var(--warn); }
+  .roster-toggle { margin-top: 14px; }
+  .roster { margin-top: 10px; }
+  .roster input { margin-bottom: 8px; }
+  .roster-list { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overscroll-behavior: contain; }
+  .roster-row { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line-2); background: none; text-align: left; cursor: pointer; font-size: 13px; min-width: 0; }
+  .roster-row:hover { background: var(--surface-2); }
+  .roster-row code { color: var(--muted); font-size: 12px; flex: none; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .roster-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .roster-row.abs { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+  .roster-row.abs code { color: var(--bad); }
+
+  .actionbar { position: sticky; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 10px 10px 20px; box-shadow: 0 8px 28px -12px rgba(0,0,0,.18); }
+  .counts { display: flex; gap: 16px; flex: 1; min-width: 0; color: var(--ink-2); font-size: 13.5px; white-space: nowrap; }
+  .counts b { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .t-ok { color: var(--ok); } .t-bad { color: var(--bad); } .t-muted { color: var(--muted); }
+  .actionbar .actions { display: flex; gap: 8px; }
+
+  /* ---------- Dashboard ---------- */
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 170px)); gap: 8px; margin-bottom: 16px; }
+  .filters-meta { display: flex; justify-content: flex-end; margin: -8px 0 10px; }
+  .stats { padding: 0; }
+  .stat { padding: 16px 20px; min-width: 0; }
+  .stat span { display: block; font-size: 13px; color: var(--ink-2); }
+  .stat b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -.5px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+
+  .seg-tabs { display: flex; gap: 8px 20px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
+  .seg-tabs > button { border: 0; background: none; padding: 14px 0 12px; cursor: pointer; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .seg-tabs > button:hover { color: var(--ink); }
+  .seg-tabs > button.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .seg-tabs .tools { margin-left: auto; display: flex; gap: 12px; align-items: center; padding: 8px 0; }
+  .seg-tabs .tools input[type=search] { width: 240px; height: 34px; }
+  .check { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+  .check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; background: var(--surface-2); }
+  th:first-child, td:first-child { padding-left: 20px; }
+  th:last-child, td:last-child { padding-right: 16px; }
+  tbody tr:hover { background: var(--surface-2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .nowrap { white-space: nowrap; }
+  .sub { color: var(--muted); }
+  .two b { display: block; font-weight: 500; }
+  .two small { display: block; font-size: 12.5px; color: var(--muted); }
+  td.c-course { min-width: 200px; }
+  td.acts { width: 1%; white-space: nowrap; }
+  td.acts div { display: flex; gap: 2px; justify-content: flex-end; }
+  .pct { font-weight: 600; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  td.chev { width: 1%; color: var(--muted); }
+  tr.clickable:hover td.chev { color: var(--ink); }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .status.ok { color: var(--ok); }
+  .status.bad { color: var(--bad); font-weight: 600; }
+  .modal.wide { max-width: 640px; }
+  tr.below-row { background: var(--bad-soft); }
+  tr.below-row:hover { background: #fde8e8; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px 10px 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .pager div { display: flex; gap: 6px; }
+  .empty { text-align: center; color: var(--muted); padding: 36px 16px; }
+  .footnote { margin-top: 14px; font-size: 13px; color: var(--muted); display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; }
+  .footnote .spacer { flex: 1; }
+
+  /* ---------- Account, sign-in, student and access pages ---------- */
+  .user { display: flex; align-items: center; gap: 10px; margin-left: 8px; font-size: 13px; color: var(--ink-2); min-width: 0; }
+  .user .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .role-pill { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .gate { max-width: 420px; margin: 10vh auto 0; text-align: center; }
+  .gate .card { padding: 28px 24px; }
+  .gate h1 { margin-bottom: 8px; }
+  .gate p { color: var(--ink-2); margin: 0 0 20px; }
+  .gate .btn { width: 100%; }
+  .mine-head { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+  .mine-head h3 { margin: 0; font-size: 16px; }
+  .mine-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  .form-row .field { flex: 1 1 180px; }
+  .muted-note { font-size: 12.5px; color: var(--muted); }
+
+  /* ---------- Toast & modal ---------- */
+  .toast { position: fixed; top: 68px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; z-index: 60; font-size: 13.5px; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px -8px rgba(0,0,0,.35); animation: toast-in .2s ease-out; }
+  @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+  .toast .t-icon { color: #4ade80; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 520px; max-height: min(84vh, 720px); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 60px -20px rgba(0,0,0,.4); }
+  .modal-head { padding: 18px 16px 14px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: flex-start; }
+  .modal-head h3 { margin: 0; font-size: 16px; line-height: 1.35; }
+  .modal-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .modal-body { overflow: auto; }
+  .modal-body td { padding-top: 8px; padding-bottom: 8px; }
+  .modal-body th { position: sticky; top: 0; z-index: 1; }
+  .modal-foot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .filters .combo:first-child { grid-column: 1 / -1; }
+    .lect th.c-present, .lect td.c-present { display: none; }
+  }
+  @media (max-width: 760px) {
+    /* Lectures table becomes a list of cards */
+    .lect thead { display: none; }
+    .lect, .lect tbody { display: block; }
+    .lect tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "when pct" "course course" "hall acts"; column-gap: 8px; row-gap: 4px; padding: 12px 16px 12px 20px; border-bottom: 1px solid var(--line-2); }
+    .lect td { display: block; padding: 0 !important; border: 0; }
+    .lect td.c-when { grid-area: when; }
+    .lect td.c-when .two { display: flex; gap: 6px; align-items: baseline; }
+    .lect td.c-when .two b, .lect td.c-when .two small { display: inline; }
+    .lect td.c-pct { grid-area: pct; }
+    .lect td.c-course { grid-area: course; min-width: 0; }
+    .lect td.c-hall { grid-area: hall; align-self: center; }
+    .lect td.c-present { display: none; }
+    .lect td.acts { grid-area: acts; width: auto; }
+  }
+  @media (max-width: 640px) {
+    main { padding: 20px 12px 48px; }
+    h1 { font-size: 21px; margin-bottom: 16px; }
+    .topbar-in { padding: 0 12px; gap: 8px; }
+    .brand .name { display: none; }
+    .user .who, .user .role-pill { display: none; }
+    .tabs button { padding: 0 10px; }
+    .card { padding: 16px; }
+    .card.flush { padding: 0; }
+    .fields { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .roster-list { grid-template-columns: minmax(0, 1fr); }
+    .actionbar { flex-wrap: wrap; bottom: 8px; padding: 10px; gap: 8px; }
+    .counts { flex-basis: 100%; justify-content: center; }
+    .actionbar .actions { flex: 1; }
+    .actionbar .actions .btn { flex: 1; }
+    .page-head .btn { padding: 0 12px; }
+    .stat { padding: 12px; }
+    .stat span { font-size: 12px; line-height: 1.3; }
+    .stat b { font-size: 20px; margin-top: 2px; }
+    .seg-tabs { padding: 0 12px; }
+    .seg-tabs .tools { margin-left: 0; width: 100%; padding-top: 0; padding-bottom: 12px; }
+    .seg-tabs .tools input[type=search] { flex: 1; width: auto; }
+    th:first-child, td:first-child { padding-left: 12px; }
+    th:last-child, td:last-child { padding-right: 12px; }
+    td.c-name { white-space: normal; }
+
+    .pager { padding: 10px 12px; }
+    .lect tr { padding: 12px; }
+    .footnote .spacer { flex-basis: 100%; height: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><span class="logo"><i data-icon="logo"></i></span><span class="name">IncAttendance</span></div>
+    <nav class="tabs">
+      <button data-tab="take" class="active">Take attendance</button>
+      <button data-tab="dash">Dashboard</button>
+      <button data-tab="mine" hidden>My attendance</button>
+      <button data-tab="access" hidden>Access</button>
+    </nav>
+    <div class="user" id="user-box" hidden>
+      <span class="who" id="user-email"></span><span class="role-pill" id="user-role"></span>
+      <button class="link" id="btn-signout" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ TAKE ATTENDANCE ============ -->
+  <section id="tab-take" class="page narrow">
+    <h1>Mark attendance</h1>
+
+    <div class="card">
+      <div class="fields">
+        <div class="field"><label for="f-date">Date</label><div class="date-field"><input type="date" id="f-date" required><span class="ph">Select date</span></div></div>
+        <div class="field"><label for="f-slot">Time slot</label><select id="f-slot"></select></div>
+        <div class="field full"><label for="f-subject">Course</label><select id="f-subject"></select><div class="field-note" id="slot-note" hidden></div></div>
+        <div class="field"><label for="f-prof">Professor</label><select id="f-prof"></select></div>
+        <div class="field"><label for="f-hall">Lecture hall</label><select id="f-hall"></select></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <label for="f-absent">Absent students</label>
+        <button class="link muted" id="btn-clear" type="button" hidden>Clear</button>
+      </div>
+      <textarea id="f-absent" spellcheck="false" placeholder="Enter reg. numbers of absent students, e.g. 0003/62, 171/62, 335/63"></textarea>
+      <div class="chips" id="absent-chips"></div>
+      <div class="roster-toggle"><button class="link" id="btn-roster" type="button">Pick from student list</button></div>
+      <div class="roster" id="roster" hidden>
+        <input type="search" id="picker-search" placeholder="Search students by name or reg. no.">
+        <div class="roster-list" id="picker"></div>
+      </div>
+    </div>
+
+    <div class="actionbar">
+      <div class="counts">
+        <span><b class="t-ok" id="s-present">0</b> present</span>
+        <span><b class="t-bad" id="s-absent">0</b> absent</span>
+        <span class="t-muted">of <span id="s-total">0</span></span>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btn-download" type="button"><i data-icon="download"></i>Download Excel</button>
+        <button class="btn primary" id="btn-save" type="button">Save</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="tab-dash" class="page" hidden>
+    <div class="page-head">
+      <h1>Dashboard</h1>
+      <button class="btn" id="btn-export-all" type="button"><i data-icon="download"></i>Export to Excel</button>
+    </div>
+
+    <div class="filters">
+      <select id="d-subject" aria-label="Subject"></select>
+      <div class="date-field date-f"><input type="date" id="d-from" required aria-label="From date"><span class="ph">From date</span></div>
+      <div class="date-field date-f"><input type="date" id="d-to" required aria-label="To date"><span class="ph">To date</span></div>
+    </div>
+    <div class="filters-meta" id="filters-meta" hidden><button class="link" id="btn-reset-filters" type="button">Clear all filters</button></div>
+
+    <div class="card stats">
+      <div class="stat"><span>Students near attendance limit</span><b id="k-low">0</b></div>
+    </div>
+
+    <div class="card flush">
+      <div class="seg-tabs" id="subtabs">
+        <button type="button" data-sub="lectures" class="active">Lectures</button>
+        <button type="button" data-sub="students">Students</button>
+        <div class="tools">
+          <input type="search" id="table-search" placeholder="Search lectures" aria-label="Search table">
+          <label class="check" id="only-low-wrap" hidden><input type="checkbox" id="only-low"> Below limit only</label>
+        </div>
+      </div>
+      <div id="sub-lectures" class="table-wrap"></div>
+      <div id="sub-students" class="table-wrap" hidden></div>
+    </div>
+
+    <div class="footnote">
+      <span id="store-note">Records are stored in this browser.</span>
+      <button class="link" id="btn-backup" type="button">Back up</button>
+      <span id="restore-wrap">· <button class="link" id="btn-restore" type="button">Restore</button></span>
+      <input type="file" id="restore-file" accept=".json,application/json" hidden>
+      <span class="spacer"></span>
+      <button class="link" id="btn-mock-load" type="button">Load sample data</button>
+      <button class="link muted" id="btn-mock-clear" type="button" hidden>Remove sample data</button>
+    </div>
+  </section>
+
+  <!-- ============ SIGN-IN SCREENS (online mode) ============ -->
+  <section id="gate-loading" class="gate" hidden><p id="loading-text">Loading…</p></section>
+  <section id="gate-signin" class="gate" hidden>
+    <div class="card">
+      <h1>Sign in</h1>
+      <p>Use your college Google account.</p>
+      <button class="btn primary" id="btn-google" type="button">Sign in with Google</button>
+    </div>
+  </section>
+  <section id="gate-noaccess" class="gate" hidden>
+    <div class="card">
+      <h1>No access yet</h1>
+      <p>You're signed in as <b id="noaccess-email"></b>, but this account hasn't been given access. Ask the portal admin to add you.</p>
+      <button class="btn" id="btn-signout-2" type="button">Sign out</button>
+    </div>
+  </section>
+
+  <!-- ============ MY ATTENDANCE (students) ============ -->
+  <section id="tab-mine" class="page narrow" hidden>
+    <h1>My attendance</h1>
+    <div class="card flush" id="mine-body"></div>
+  </section>
+
+  <!-- ============ ACCESS (admin) ============ -->
+  <section id="tab-access" class="page narrow" hidden>
+    <h1>Access</h1>
+    <div class="card">
+      <div class="card-title"><h2>Staff and faculty</h2></div>
+      <div class="form-row">
+        <div class="field"><label for="m-email">College email</label><input type="email" id="m-email" placeholder="name@college.edu"></div>
+        <div class="field"><label for="m-role">Role</label><select id="m-role"><option value="">Select role</option><option value="office">MBA office</option><option value="faculty">Faculty</option><option value="admin">Admin</option></select></div>
+        <div class="field" id="m-faculty-field" hidden><label for="m-faculty">Professor</label><select id="m-faculty"></select></div>
+        <button class="btn primary" id="btn-add-member" type="button">Give access</button>
+      </div>
+      <div class="table-wrap" id="members-table" style="margin: 16px -20px -20px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><h2>Student emails</h2><p id="student-email-count"></p></div>
+      <p class="muted-note" style="margin: 0 0 10px">A student can sign in once their college email is linked to their reg. no. One student per line: reg. no., email</p>
+      <textarea id="student-emails" spellcheck="false" placeholder="0171/62, anuj.kapse@college.edu"></textarea>
+      <div style="margin-top: 10px; text-align: right"><button class="btn primary" id="btn-save-emails" type="button">Save emails</button></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ---------------- Master data ---------------- */
+const ROSTER_TEXT = `
+0001/62|AASTHA YADAV
+0002/62|ABBAGONE VINOD VENKATESH
+0003/62|ABHISHEK
+0004/62|ADITEE KHANDELWAL
+0005/62|ADITI JHA
+0006/62|ALLADA NAVDEEP
+0007/62|AMAN EHTESHAM
+0008/62|AMAY PATIL
+0009/62|AMIT KAKALIYA
+0010/62|AMIT VIGNESHWAR HEGDE
+0011/62|ANIRUDH PRATISH KOLLERI
+0012/62|ANIT SINGH
+0013/62|ANJALI AJAY PRABHAKAR
+0014/62|ANURODH CHAURASIA
+0015/62|ARAVIND C
+0016/62|ARYAN
+0017/62|AYUSH KUMAR MISHRA
+0018/62|BHAGAVATHI RAVIKRISHNAN
+0019/62|CHITTURI SAKSHVITH SANJEEV
+0020/62|DARSH KANSAL
+0021/62|DEBARGHYA MONDAL
+0022/62|DHEERAJ PAWAR
+0023/62|DHRITI SUNDER SAHA
+0024/62|DIPTI BHARTI
+0025/62|GANDHI MEET RAJESH
+0026/62|GAURAV AGRAWAL
+0027/62|GAURAV AHUJA
+0028/62|GOPAL MAHESHWARI
+0029/62|HARNAM SINGH CHHABRA
+0030/62|HARSHIT KUMAR SINGH
+0031/62|HARSHIT MADAAN
+0032/62|HIBA NAHAR
+0033/62|HITANSH DOSHI
+0034/62|HITESH MOHNOT
+0035/62|JANET EGANS A
+0036/62|JASKARAN SINGH
+0037/62|JEEVAK HARESH BHALERAO
+0038/62|KAMISETTI RAVI TEJA
+0039/62|KANAV BANSAL
+0040/62|KARTIKEYA BHAIRA
+0041/62|KRUSHI NAVINCHANDRA PATEL
+0042/62|MADHU GUPTA
+0043/62|MALLA HEMANTH
+0044/62|MEGAVATH SRIHARI
+0045/62|MEHUL PAARAKH
+0046/62|MRIGANK JAIN
+0047/62|MRUDUL KULKARNI
+0048/62|NAMAN PARESH RAKA
+0049/62|NIHAAL SOHI
+0050/62|NISHANT MISHRA
+0051/62|PAAVEN BANSAL
+0052/62|PALAK TIBREWAL
+0053/62|PAYAL ARORA
+0054/62|PRASHAM PARAG GALA
+0055/62|PRATIK KUMAR BEHERA
+0056/62|PRMEHER KAUR
+0057/62|PUVVULA UDAY TEJA
+0058/62|RHEA PANWAR
+0059/62|RIYA MANDAL
+0060/62|ROHIT KARANDIKAR
+0061/62|ROHIT MOHTA
+0062/62|SADOCK CHAKMA
+0063/62|SAHIL CHAHAR
+0064/62|SANIYA ILYAS
+0065/62|SANJAY R
+0066/62|SARAH KAPOOR
+0067/62|SATANSU MOHANTY
+0068/62|SATYAM
+0069/62|SHIVANSH BANSAL
+0070/62|SHRISTI KUMARI
+0071/62|SHRUTIKA NEGI
+0072/62|SIMRAN CHOUDHARY
+0073/62|AKASH DAS
+0074/62|SOURAV
+0075/62|SRUJITA MALLICK
+0076/62|SRIVATSAN R
+0077/62|SUBHAYAN CHATTERJEE
+0078/62|THOUTAM MAHONNATH
+0079/62|THUMMALA MAHESH
+0080/62|YENNI DEEKSHITHA
+0086/62|ADITYA
+0088/62|ADITYA RISHI
+0091/62|AKRITI VERMA
+0106/62|HARSH KASHYAP
+0107/62|HARSH KUMAR
+0109/62|ISHAN TRIPATHI
+0111/62|JAY PATIDAR
+0113/62|KARTIKEY ANAND
+0114/62|KHUSHEE SONI
+0121/62|NAVEEN YADAV
+0127/62|PAYAM PRAVALIKA
+0129/62|PRABHJOT SINGH
+0130/62|PRANAYA REDDY CHILUKALA
+0138/62|RUSHIL V
+0148/62|SIMAR MADRA
+0151/62|SOUWIK KUMAR SINGH
+0154/62|SUYASH RATN PANDEY
+0162/62|AAKASH KATIYAR
+0167/62|AMARTYA ANIL BANSOD
+0171/62|ANUJ ANIL KAPSE
+0185/62|GOGADA SAI KRISHNA
+0187/62|HARSHVARDHAN TRILOK KUMAR SHEWAKRAMANI
+0189/62|HRIDAY KHARBANDA
+0196/62|MAKKA CHANDRA SEKHAR
+0419/61|BODA SHALEM NAIK
+0161/63|AAKRIT
+0162/63|AARYAN TRIVEDI
+0163/63|AAYUSH MITTAL
+0164/63|ADARSH AGARWALL
+0165/63|AKASH RAI
+0166/63|VEJENDLA NOSWIN BENNY JEEVAN
+0167/63|AKSHAT YADAV
+0168/63|AMAAN HUSSAIN
+0169/63|ANSH CHAUDHARY
+0170/63|ANSUMAN RAY
+0171/63|ANTARA MANDAL
+0172/63|ANVI SINGH
+0173/63|ARAVINTAKSHAN S A
+0174/63|ARCHIT AWASTHI
+0175/63|ARJUN GUPTA
+0176/63|SIDDHARTH V
+0177/63|ARNAV SHARMA
+0178/63|ASHWIN RAVI T
+0179/63|BHOJ KINJAL PRAVIN
+0180/63|BIKANSHA DEBROY
+0181/63|DIYA GUPTA
+0182/63|G PRIYADARSHINI
+0183/63|GAURAV NAGAR
+0184/63|GAWLI PRATHAM MANGESH
+0185/63|GURSIMAR SINGH
+0186/63|HARSH KACHCHHI
+0187/63|HARSHIT
+0188/63|ISHA JAIN
+0189/63|KAVYA BALOT
+0190/63|KATRAGADDA PRAGNA
+0191/63|KRISHIKA BHATNAGAR
+0192/63|KSHITIJ GUPTA
+0193/63|KUHU PATIL
+0194/63|KUSHAGRA PANDEY
+0195/63|MANOSIZ ROY
+0196/63|MILAN MEENA
+0197/63|SUPRIYA KUMARI
+0198/63|MUSKAN KUMARI
+0199/63|NANDINI KRIPLAN
+0200/63|NEHA VINOD ALATAGI
+0201/63|NIRUPAMA GIRI
+0202/63|NIRUPAMA K
+0203/63|PARIKSHIT GHOSH
+0204/63|PIDAKALA ILIN RAJ
+0205/63|PIYUSH GUPTA
+0206/63|PRACHI PRANJAL
+0207/63|PRAKASH MOHALDAR
+0208/63|PRANAV PRASHANT UTAGE
+0209/63|PRIYANSHU CHANDRAKANT THAKKAR
+0210/63|REDDY SIVA SANJAY
+0211/63|REVANTH K S
+0212/63|RIDAM ABHISHEK MAHESHWARI
+0213/63|SAATHWICK SANTHES S
+0214/63|SAMAR ABBAS NAQVI
+0215/63|SATYAM RAJ
+0216/63|SAVI MODI
+0217/63|SHIVAM GUPTA
+0218/63|SHREY AGGARWAL
+0219/63|SHUBHAM VERMA
+0220/63|SHWETA RAJ
+0221/63|SHWETH GOVERDHAN SHETTY
+0222/63|RISHAV RANJAY
+0223/63|SURYANSH LUNKAR
+0224/63|SYUN GOYAL
+0322/63|ABHAY NEGI
+0323/63|ADITYA ANISH SHAH
+0324/63|ADITYA JANI
+0325/63|ADITYA PANPALIYA
+0326/63|AKSHITA LODHA
+0327/63|AMAN SANDEEP NAHATA
+0328/63|AMISHA AMIT RATHI
+0329/63|ANANYA DAS
+0330/63|ANARGHYA KAIPA
+0331/63|ANIRUDH MOHAN
+0332/63|ANKIT KUMAR
+0333/63|ANNA N PAUL
+0334/63|ANSH GOYAL
+0335/63|ANUKRITI SINGH
+0336/63|ARCHISHA SINGH
+0337/63|ARGHYADEEP CHAKRABARTI
+0338/63|ARJUN ANAND BHARADWAJ
+0339/63|ARPITA DAS
+0340/63|ASHISH SANCHETI
+0341/63|BASKEY RUPAY LAXMAN
+0342/63|CHILUKOTI SIVA SRAVAN
+0343/63|CHIRAG SURANA
+0344/63|DHIR PRIYAM SINGH
+0345/63|ESSAM HUSSEIN PULAYAKALATHIL
+0346/63|GOKUL RAJ T
+0347/63|GUGULOTHU SAI CHANDAN
+0348/63|GURSIMAR SINGH TUTEJA
+0349/63|HADIQUE RASHID
+0350/63|HARSH RAJPUT
+0351/63|ISHAN SAHA
+0352/63|JOEL MATHEW
+0353/63|KARTHIK M
+0354/63|KARTIK JAKHODIA
+0355/63|KHYATIKA SHAH
+0356/63|KOTHI ANURAG SAI
+0357/63|KUNAL YADAV
+0358/63|MAKENA SRI SNIGDHA PRANAVA
+0359/63|NIKHIL PANDEY
+0360/63|OJAS SANJIV THAKUR
+0361/63|PALLAVI SINGH
+0362/63|PANKAJ KUMAR
+0363/63|PARISHRUT RAJHANS
+0364/63|PARTH PIYUSH JOGI
+0365/63|PAWAR APURVA BHARAT
+0366/63|PEDDINTI CHANDINI
+0367/63|PITCHUKA ANNAPURNA
+0368/63|PRANJAL CHAKRABORTY
+0369/63|PRANNOY VIKASH CHANDRA
+0370/63|PRASHANTH S NAIK
+0371/63|PRATHA SHAH
+0372/63|PRATHAM PRATEEK MOHANTY
+0373/63|PRATHAMESH SACHIN SAVALKAR
+0374/63|PRATIK DAS
+0375/63|RADHIKA GARODIA
+0376/63|RAJAT SHAILENDRA AWALE
+0377/63|ANNAVARPU SANKALP
+0378/63|RATNESH RANJAN
+0379/63|RHYTHM JAIN
+0380/63|ROBIN
+0381/63|RUPAM CHAHAL
+0382/63|SAKSHAM DHIMAN
+0383/63|SAMARTH GOYAL
+0384/63|SANJANA SINGH
+0385/63|SARAL VASHISHTA
+0386/63|SHIVANSHU YADAV
+0387/63|SHUBHAM VARSHNEYA
+0388/63|SIDDID KHANNA
+0389/63|SRIJAN SINGH
+0390/63|MALAVIKA BYJU
+0391/63|TRILOK SINGH
+0392/63|TRISHA AGARWAL
+0393/63|VAIBHAVI R
+0394/63|VARUN G
+0395/63|HARISH
+0396/63|VRATIKA RANJITKUMAR KHAIRE
+0397/63|YASHASVI KAPOOR
+0398/63|JITHIN MOHAMMED KHAN
+0399/63|SANYA DAYAL
+0400/63|AYAN MURMU
+0401/63|AADARSH KUMAR
+0402/63|AAYUSH AGRAWAL
+`;
+const STUDENTS = ROSTER_TEXT.trim().split("\n").map(l => { const [reg, name] = l.split("|"); return { reg, name }; });
+const BY_REG = new Map(STUDENTS.map(s => [s.reg, s]));
+
+/* ---- Term-V timetable (from Class Schedule_Term-V_AY-2026-27.xlsx) ---- */
+const SLOTS = ["08:30", "10:15", "12:00", "14:30", "16:15", "18:00"];
+const SLOT_LABELS = { "08:30": "08:30 – 10:00", "10:15": "10:15 – 11:45", "12:00": "12:00 – 13:30", "14:30": "14:30 – 16:00", "16:15": "16:15 – 17:45", "18:00": "18:00 – 19:30" };
+const HALLS = ["L-2", "L-4", "L-51", "L-52", "N-22", "Amphi (East-150)", "Amphi (West-100)", "Tata Hall (East-West Conference)"];
+const FACULTY = [
+  "Prof. Abhipsa Pal",
+  "Prof. Abhishek Goel",
+  "Dr. Anbu Rathinavel (VF)",
+  "Prof. Anupama Kondayya",
+  "Prof. Atanu Ghosh (VF)",
+  "Prof. Avinash Kumar",
+  "Prof. B.B Chakrabarti (VF)",
+  "Mr. Balachandran R (VF)",
+  "Prof. Balram Avittathur",
+  "Prof. Biju Paul Abraham",
+  "Mr. C. D. Mitra (VF)",
+  "Prof. Chayanika Bhayana",
+  "Prof. Conan Mukherjee",
+  "Prof. D P Ghosh (VF)",
+  "Mr. Deep Narayan Mukherjee (VF)",
+  "Prof. Devi Vijay",
+  "Prof. K Dasaratharaman (VF)",
+  "Prof. Kaushik Roy",
+  "Prof. Koushiki Choudhury",
+  "Prof. Madhuparna Karmokar",
+  "Prof. Manish Kr. Thakur",
+  "Prof. Nandita Roy",
+  "Prof. Nisigandha Bhuyan",
+  "Prof. Partha Priya Datta",
+  "Prof. Priya Seetharaman",
+  "Prof. R Rangarajan Iyengar (VF)",
+  "Prof. Rajiv Kumar",
+  "Mr. Ramakrishnan V (VF)",
+  "Prof. Ramendra Singh",
+  "Prof. Ramya T. Venkateswaran",
+  "Prof. Ranjan Das (VF)",
+  "Prof. Rashmi Kumari",
+  "Prof. Rohit Negi",
+  "Prof. Runa Sarkar",
+  "Prof. Sabyasachi Mukhopadhyay",
+  "Prof. Sudhakar Reddy",
+  "Prof. Sudhir Jaiswall",
+  "Prof. Uttam Kr. Sarkar",
+  "Prof. Vivek Rajvanshi"
+];
+/* Course -> instructors (course coordinator first), venue and credits.
+   Credits: 1.5 for pre-/post-mid-term-only courses, 3 for full-term courses. */
+const COURSES = {
+  "Analytics in Practice": { profs: ["Prof. Abhipsa Pal", "Prof. Atanu Ghosh (VF)"], hall: "L-51", credits: 1.5 },
+  "Bank Management": { profs: ["Prof. Sudhir Jaiswall", "Mr. Balachandran R (VF)"], hall: "Amphi (West-100)", credits: 3 },
+  "Consumer Behaviour": { profs: ["Prof. Rashmi Kumari"], hall: "N-22", credits: 3 },
+  "Consumption Culture & Markets": { profs: ["Prof. Manish Kr. Thakur"], hall: "L-4", credits: 3 },
+  "Country Risk Analysis": { profs: ["Prof. Biju Paul Abraham"], hall: "Amphi (West-100)", credits: 3 },
+  "Creating, Managing, and Leading Social Enterprises": { profs: ["Prof. Devi Vijay"], hall: "L-4", credits: 3 },
+  "Design Thinking for Digital Products and Services": { profs: ["Prof. Priya Seetharaman", "Dr. Anbu Rathinavel (VF)", "Mr. Ramakrishnan V (VF)"], hall: "Tata Hall (East-West Conference)", credits: 1.5 },
+  "Ethics and Values in International Business": { profs: ["Prof. Nisigandha Bhuyan"], hall: "N-22", credits: 3 },
+  "Financial Risk Management": { profs: ["Prof. Sudhakar Reddy", "Mr. Deep Narayan Mukherjee (VF)"], hall: "Amphi (West-100)", credits: 3 },
+  "Fixed Income Markets": { profs: ["Prof. Vivek Rajvanshi", "Prof. B.B Chakrabarti (VF)"], hall: "L-4", credits: 3 },
+  "Industry Analysis, Strategy and Performance": { profs: ["Prof. Kaushik Roy", "Prof. Ranjan Das (VF)"], hall: "L-4", credits: 3 },
+  "Inside Storytelling - Theories and Praxis for Communication and Management-A": { profs: ["Prof. Nandita Roy"], hall: "Amphi (East-150)", credits: 3 },
+  "Inside Storytelling - Theories and Praxis for Communication and Management-B": { profs: ["Prof. Nandita Roy"], hall: "Amphi (East-150)", credits: 3 },
+  "Integrated Marketing Communication": { profs: ["Prof. Koushiki Choudhury", "Prof. D P Ghosh (VF)"], hall: "Amphi (East-150)", credits: 3 },
+  "Logistics and Supply Chain Management-A": { profs: ["Prof. Balram Avittathur"], hall: "N-22", credits: 3 },
+  "Logistics and Supply Chain Management-B": { profs: ["Prof. Balram Avittathur"], hall: "N-22", credits: 3 },
+  "Management of Self in Organisations": { profs: ["Prof. Abhishek Goel"], hall: "L-51", credits: 3 },
+  "Managerial Excellence: Insights from Indian Philosophy": { profs: ["Prof. Nisigandha Bhuyan"], hall: "N-22", credits: 3 },
+  "Managing Digital Transformation": { profs: ["Prof. Abhipsa Pal"], hall: "L-51", credits: 1.5 },
+  "Managing Diversity and Inclusion in Organizations": { profs: ["Prof. Anupama Kondayya"], hall: "L-52", credits: 1.5 },
+  "Managing Global Cities": { profs: ["Prof. Rohit Negi"], hall: "Amphi (East-150)", credits: 1.5 },
+  "Managing Retailing": { profs: ["Prof. Ramendra Singh", "Prof. K Dasaratharaman (VF)"], hall: "Amphi (West-100)", credits: 3 },
+  "Managing Teams in Organizations": { profs: ["Prof. Chayanika Bhayana"], hall: "L-2", credits: 1.5 },
+  "Managing Technology and Information Systems for Industry 4.0": { profs: ["Prof. Abhipsa Pal", "Prof. Atanu Ghosh (VF)"], hall: "Amphi (West-100)", credits: 3 },
+  "Market Design: Applications and Analysis": { profs: ["Prof. Madhuparna Karmokar", "Prof. Conan Mukherjee"], hall: "Amphi (West-100)", credits: 3 },
+  "Marketing Theory and Contemporary Issues-A": { profs: ["Prof. Avinash Kumar", "Mr. C. D. Mitra (VF)"], hall: "Amphi (East-150)", credits: 3 },
+  "Marketing Theory and Contemporary Issues-B": { profs: ["Prof. Avinash Kumar", "Mr. C. D. Mitra (VF)"], hall: "Amphi (East-150)", credits: 3 },
+  "Marketing to Bottom of Pyramid Consumers": { profs: ["Prof. Ramendra Singh"], hall: "Amphi (West-100)", credits: 3 },
+  "Methods & Evidences in Organizational Behavior": { profs: ["Prof. Rajiv Kumar"], hall: "L-51", credits: 3 },
+  "Non-profit and Social Marketing": { profs: ["Prof. Koushiki Choudhury"], hall: "L-52", credits: 3 },
+  "Social Network Analytics": { profs: ["Prof. Uttam Kr. Sarkar"], hall: "N-22", credits: 3 },
+  "Statistics for Data Science and Business Analysis": { profs: ["Prof. Sabyasachi Mukhopadhyay"], hall: "L-51", credits: 1.5 },
+  "Strategic Decision Making in International Business": { profs: ["Prof. Ramya T. Venkateswaran"], hall: "L-4", credits: 3 },
+  "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum": { profs: ["Prof. Partha Priya Datta", "Prof. R Rangarajan Iyengar (VF)"], hall: "N-22", credits: 3 },
+  "The Economics of Corporate Sustainability": { profs: ["Prof. Runa Sarkar"], hall: "Amphi (East-150)", credits: 3 }
+};
+const SUBJECTS = Object.keys(COURSES);
+/* Weekly grid: [slot, course, "pre" | "post" (only runs before / after mid-term)] */
+const WEEKLY = {
+  Monday: [
+    ["10:15", "Managing Technology and Information Systems for Industry 4.0"],
+    ["10:15", "Logistics and Supply Chain Management-A"],
+    ["10:15", "Strategic Decision Making in International Business"],
+    ["12:00", "Analytics in Practice", "pre"],
+    ["12:00", "Managing Diversity and Inclusion in Organizations", "pre"],
+    ["12:00", "Logistics and Supply Chain Management-B"],
+    ["12:00", "Statistics for Data Science and Business Analysis", "post"],
+    ["14:30", "Marketing Theory and Contemporary Issues-A"],
+    ["14:30", "Creating, Managing, and Leading Social Enterprises"],
+    ["14:30", "Country Risk Analysis"],
+    ["16:15", "Managing Digital Transformation", "pre"],
+    ["16:15", "Marketing Theory and Contemporary Issues-B"],
+    ["16:15", "Consumption Culture & Markets"],
+    ["18:00", "Ethics and Values in International Business"]
+  ],
+  Tuesday: [
+    ["08:30", "Managing Technology and Information Systems for Industry 4.0"],
+    ["10:15", "Managerial Excellence: Insights from Indian Philosophy"],
+    ["10:15", "Analytics in Practice", "pre"],
+    ["10:15", "Marketing to Bottom of Pyramid Consumers"],
+    ["12:00", "Market Design: Applications and Analysis"],
+    ["12:00", "Social Network Analytics"],
+    ["12:00", "Integrated Marketing Communication"],
+    ["14:30", "Managing Digital Transformation", "pre"],
+    ["14:30", "Marketing Theory and Contemporary Issues-B"],
+    ["14:30", "Logistics and Supply Chain Management-B"],
+    ["14:30", "Consumption Culture & Markets"],
+    ["16:15", "Bank Management"],
+    ["16:15", "Marketing Theory and Contemporary Issues-A"],
+    ["18:00", "Bank Management"],
+    ["18:00", "Managing Teams in Organizations", "pre"],
+    ["18:00", "Logistics and Supply Chain Management-A"]
+  ],
+  Wednesday: [
+    ["10:15", "The Economics of Corporate Sustainability"],
+    ["10:15", "Bank Management"],
+    ["10:15", "Managing Diversity and Inclusion in Organizations", "pre"],
+    ["10:15", "Statistics for Data Science and Business Analysis", "post"],
+    ["12:00", "Bank Management"],
+    ["12:00", "Managing Global Cities", "post"],
+    ["14:30", "Ethics and Values in International Business"],
+    ["14:30", "Creating, Managing, and Leading Social Enterprises"],
+    ["14:30", "Country Risk Analysis"],
+    ["16:15", "Consumer Behaviour"],
+    ["18:00", "Consumer Behaviour"]
+  ],
+  Thursday: [
+    ["10:15", "Managerial Excellence: Insights from Indian Philosophy"],
+    ["10:15", "Marketing to Bottom of Pyramid Consumers"],
+    ["12:00", "Market Design: Applications and Analysis"],
+    ["12:00", "Social Network Analytics"],
+    ["12:00", "Integrated Marketing Communication"],
+    ["14:30", "Non-profit and Social Marketing"],
+    ["14:30", "Managing Teams in Organizations", "pre"],
+    ["14:30", "Methods & Evidences in Organizational Behavior", "post"],
+    ["14:30", "Industry Analysis, Strategy and Performance"],
+    ["16:15", "Management of Self in Organisations"],
+    ["16:15", "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum"],
+    ["16:15", "Strategic Decision Making in International Business"],
+    ["18:00", "Management of Self in Organisations"],
+    ["18:00", "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum"]
+  ],
+  Friday: [
+    ["08:30", "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum"],
+    ["10:15", "Fixed Income Markets"],
+    ["10:15", "Managing Retailing"],
+    ["10:15", "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum"],
+    ["12:00", "Fixed Income Markets"],
+    ["12:00", "Managing Retailing"],
+    ["12:00", "Managing Global Cities", "post"],
+    ["14:30", "Inside Storytelling - Theories and Praxis for Communication and Management-B"],
+    ["14:30", "Non-profit and Social Marketing"],
+    ["14:30", "Methods & Evidences in Organizational Behavior"],
+    ["14:30", "Industry Analysis, Strategy and Performance"],
+    ["16:15", "The Economics of Corporate Sustainability"],
+    ["16:15", "Financial Risk Management"],
+    ["18:00", "Inside Storytelling - Theories and Praxis for Communication and Management-A"],
+    ["18:00", "Financial Risk Management"]
+  ],
+  Saturday: [
+    ["10:15", "Inside Storytelling - Theories and Praxis for Communication and Management-A"],
+    ["10:15", "Financial Risk Management"],
+    ["12:00", "Financial Risk Management"],
+    ["14:30", "Inside Storytelling - Theories and Praxis for Communication and Management-B"],
+    ["16:15", "Design Thinking for Digital Products and Services", "post"],
+    ["16:15", "Methods & Evidences in Organizational Behavior", "pre"],
+    ["18:00", "Design Thinking for Digital Products and Services", "post"]
+  ],
+  Sunday: [
+    ["10:15", "Design Thinking for Digital Products and Services", "post"],
+    ["12:00", "Design Thinking for Digital Products and Services", "post"]
+  ]
+};
+/* Visiting-faculty courses meet only on these dates (they replace the weekly grid) */
+const DATED_SESSIONS = {
+  "Bank Management": [["2026-09-01", "16:15"], ["2026-09-01", "18:00"], ["2026-09-02", "10:15"], ["2026-09-02", "12:00"], ["2026-09-08", "16:15"], ["2026-09-08", "18:00"], ["2026-09-09", "10:15"], ["2026-09-09", "12:00"], ["2026-09-15", "16:15"], ["2026-09-15", "18:00"], ["2026-09-16", "10:15"], ["2026-09-16", "12:00"], ["2026-11-03", "16:15"], ["2026-11-03", "18:00"], ["2026-11-04", "10:15"], ["2026-11-04", "12:00"], ["2026-11-17", "16:15"], ["2026-11-17", "18:00"], ["2026-11-18", "10:15"], ["2026-11-18", "12:00"]],
+  "Financial Risk Management": [["2026-08-28", "16:15"], ["2026-08-28", "18:00"], ["2026-08-29", "10:15"], ["2026-08-29", "12:00"], ["2026-09-04", "16:15"], ["2026-09-04", "18:00"], ["2026-09-05", "10:15"], ["2026-09-05", "12:00"], ["2026-09-18", "16:15"], ["2026-09-18", "18:00"], ["2026-09-19", "10:15"], ["2026-09-19", "12:00"], ["2026-11-13", "16:15"], ["2026-11-13", "18:00"], ["2026-11-14", "10:15"], ["2026-11-14", "12:00"], ["2026-11-20", "16:15"], ["2026-11-20", "18:00"], ["2026-11-21", "10:15"], ["2026-11-21", "12:00"]],
+  "Design Thinking for Digital Products and Services": [["2026-10-31", "16:15"], ["2026-10-31", "18:00"], ["2026-11-01", "10:15"], ["2026-11-01", "12:00"], ["2026-11-14", "18:00"], ["2026-11-15", "10:15"], ["2026-11-15", "12:00"], ["2026-11-21", "18:00"], ["2026-11-22", "10:15"], ["2026-11-22", "12:00"]],
+  "THE OPS-DRIVEN STARTUP: How Execution Builds Moats, Markets, And Momentum": [["2026-09-10", "16:15"], ["2026-09-10", "18:00"], ["2026-09-11", "08:30"], ["2026-09-11", "10:15"], ["2026-09-24", "16:15"], ["2026-09-24", "18:00"], ["2026-09-25", "08:30"], ["2026-09-25", "10:15"], ["2026-10-29", "16:15"], ["2026-10-29", "18:00"], ["2026-10-30", "08:30"], ["2026-10-30", "10:15"], ["2026-11-12", "16:15"], ["2026-11-12", "18:00"], ["2026-11-13", "08:30"], ["2026-11-13", "10:15"], ["2026-11-19", "16:15"], ["2026-11-19", "18:00"], ["2026-11-20", "08:30"], ["2026-11-20", "10:15"]]
+};
+const TERM = {
+  start: "2026-08-24", end: "2026-11-27",
+  preMidEnd: "2026-09-27", postMidStart: "2026-10-05",
+  breaks: [
+    ["2026-09-28", "2026-10-04", "mid-term exam week, post mid-term classes start 5 Oct"],
+    ["2026-10-08", "2026-10-16", "summer placement"],
+    ["2026-10-19", "2026-10-25", "Puja vacation"],
+    ["2026-11-23", "2026-11-27", "end-term exam week"]
+  ]
+};
+const LOW_THRESHOLD = 75;
+
+/* ---------------- Storage ----------------
+   Local mode (config.js left empty): records live in this browser.
+   Online mode: records live in Supabase, and the database itself decides what each signed-in person can
+   see or change (see supabase/migrations). */
+const CFG = window.INC_CONFIG || {};
+const ONLINE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+const sb = ONLINE && window.supabase ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
+// The signed-in person. In local mode there is one user who can do everything.
+let access = ONLINE ? null : { role: "admin", email: "", allow_sample_data: true, local: true };
+const ROLE_LABELS = { admin: "Admin", office: "MBA office", faculty: "Faculty", student: "Student" };
+const errText = e => e?.message || String(e);
+
+const STORE_KEY = "incAttendance.records.v1";
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; }
+}
+function saveRecords(recs) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(recs)); }
+  catch { throw new Error("Could not save to browser storage. Is this a private window?"); }
+}
+
+const localStore = {
+  async list() { return loadRecords(); },
+  async add(recs) { saveRecords(loadRecords().concat(recs)); return recs; },
+  async remove(id) { saveRecords(loadRecords().filter(r => r.id !== id)); },
+  async removeSamples() {
+    const all = loadRecords(), kept = all.filter(r => !r.mock);
+    saveRecords(kept);
+    return all.length - kept.length;
+  }
+};
+
+const rosterIndex = new Map(STUDENTS.map((s, i) => [s.reg, i]));
+const inRosterOrder = regs => [...regs].sort((a, b) => (rosterIndex.get(a) ?? 1e9) - (rosterIndex.get(b) ?? 1e9));
+const fromRow = row => ({
+  id: row.id, date: row.date, slot: row.slot, subject: row.course, prof: row.prof, hall: row.hall,
+  roster: inRosterOrder(row.roster), absent: inRosterOrder(row.absent),
+  createdAt: row.created_at, createdBy: row.created_by, mock: row.is_sample
+});
+const toRow = r => ({
+  date: r.date, slot: r.slot, course: r.subject, prof: r.prof, hall: r.hall,
+  roster: r.roster, absent: r.absent, is_sample: !!r.mock
+});
+
+const onlineStore = {
+  async list() {
+    const out = [], PAGE = 1000;  // the API returns at most 1000 rows per request
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb.from("lecture_records").select("*")
+        .order("date").order("slot").order("created_at").range(from, from + PAGE - 1);
+      if (error) throw error;
+      out.push(...data.map(fromRow));
+      if (data.length < PAGE) return out;
+    }
+  },
+  async add(recs) {
+    const saved = [], BATCH = 40;
+    for (let i = 0; i < recs.length; i += BATCH) {
+      const part = recs.slice(i, i + BATCH);
+      const { data, error } = await sb.rpc("save_lectures", { p_lectures: part.map(toRow) });
+      if (error) throw error;
+      part.forEach((r, j) => saved.push({ ...r, id: data[j], createdBy: access.email }));
+    }
+    return saved;
+  },
+  async remove(id) {
+    const { error } = await sb.rpc("delete_lecture", { p_id: id });
+    if (error) throw error;
+  },
+  async removeSamples() {
+    const { data, error } = await sb.rpc("delete_sample_lectures");
+    if (error) throw error;
+    return data;
+  }
+};
+
+const store = ONLINE ? onlineStore : localStore;
+let records = [];
+
+/* ---------------- Helpers ---------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fmtDate = iso => { const [y, m, d] = iso.split("-").map(Number); return `${String(d).padStart(2, "0")} ${MONTHS[m - 1]} ${y}`; };
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const pct = (a, b) => b ? Math.round((a / b) * 1000) / 10 : 0;
+/* Every word of the query must appear somewhere in the text (case-insensitive). */
+const queryWords = q => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+const matchesWords = (text, words) => { const t = text.toLowerCase(); return words.every(w => t.includes(w)); };
+const slotLabel = r => r.slot ? SLOT_LABELS[r.slot] || r.slot : "";
+const slug = s => s.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+function fillSelect(el, items, placeholder) {
+  el.innerHTML = (placeholder ? `<option value="">${esc(placeholder)}</option>` : "") +
+    items.map(v => `<option>${esc(v)}</option>`).join("");
+}
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = `<span class="t-icon">${ic("check")}</span>`; t.append(msg);
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
+}
+
+/* Turn free text into reg numbers. Accepts 0003/62, 3/62, 3-62 and bare 3 (if unambiguous). */
+function parseAbsent(text) {
+  const matched = [], problems = [], seen = new Set();
+  for (const tok of text.split(/[\s,;]+/).filter(Boolean)) {
+    const m = tok.match(/^(\d{1,4})(?:[\/\-](\d{2}))?$/);
+    let found = [];
+    if (m && m[2]) {
+      const reg = m[1].padStart(4, "0") + "/" + m[2];
+      if (BY_REG.has(reg)) found = [reg];
+    } else if (m) {
+      const num = m[1].padStart(4, "0");
+      found = STUDENTS.filter(s => s.reg.startsWith(num + "/")).map(s => s.reg);
+    }
+    if (found.length === 1) {
+      if (!seen.has(found[0])) { seen.add(found[0]); matched.push(found[0]); }
+    } else {
+      problems.push({ tok, reason: found.length > 1 ? `ambiguous: ${found.join(" or ")}` : "not in roster" });
+    }
+  }
+  return { matched, problems };
+}
+
+/* ---------------- Icons ---------------- */
+const ICONS = {
+  logo: '<path d="M20 6L9 17l-5-5"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  chevron: '<path d="M6 9l6 6 6-6"/>',
+  chevronRight: '<path d="M9 6l6 6-6 6"/>'
+};
+const ic = name => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+function hydrateIcons(root = document) {
+  root.querySelectorAll("[data-icon]").forEach(el => el.outerHTML = ic(el.dataset.icon));
+}
+
+/* ---------------- Timetable lookup ---------------- */
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const dayOf = iso => { const [y, m, d] = iso.split("-").map(Number); return DAY_NAMES[new Date(y, m - 1, d).getDay()]; };
+
+/* Courses scheduled on a date in a slot, plus a note when there are none. */
+function scheduledCourses(date, slot) {
+  if (!date || !slot) return { courses: [], note: "" };
+  if (date < TERM.start || date > TERM.end) return { courses: [], note: "This date is outside Term V (24 Aug to 27 Nov 2026). Pick the course manually." };
+  const brk = TERM.breaks.find(([from, to]) => date >= from && date <= to);
+  if (brk) return { courses: [], note: `No classes scheduled: ${brk[2]}. Pick the course manually.` };
+  const phase = date <= TERM.preMidEnd ? "pre" : "post";
+  const courses = (WEEKLY[dayOf(date)] || [])
+    .filter(([s, name, term]) => s === slot && !DATED_SESSIONS[name] && (!term || term === phase))
+    .map(([, name]) => name);
+  for (const [name, sessions] of Object.entries(DATED_SESSIONS))
+    if (sessions.some(([d, s]) => d === date && s === slot)) courses.push(name);
+  return { courses, note: courses.length ? "" : "No class is scheduled in this slot. Pick the course manually." };
+}
+
+/* ---------------- Take attendance ---------------- */
+const option = v => `<option>${esc(v)}</option>`;
+$("f-slot").innerHTML = `<option value="">Select time slot</option>` + SLOTS.map(s => `<option value="${s}">${SLOT_LABELS[s]}</option>`).join("");
+fillSelect($("f-hall"), HALLS, "Select hall");
+
+function renderProfOptions(course) {
+  const own = COURSES[course]?.profs || [];
+  const choices = own.length > 1 ? [own.join(" / "), ...own] : own;
+  $("f-prof").innerHTML = `<option value="">Select professor</option>` + (own.length
+    ? `<optgroup label="Teaches this course">${choices.map(option).join("")}</optgroup><optgroup label="Other faculty">${FACULTY.filter(f => !own.includes(f)).map(option).join("")}</optgroup>`
+    : FACULTY.map(option).join(""));
+}
+
+function onCourseChange() {
+  const course = $("f-subject").value;
+  renderProfOptions(course);
+  $("f-prof").value = COURSES[course] ? COURSES[course].profs.join(" / ") : "";
+  $("f-hall").value = COURSES[course]?.hall ?? "";
+}
+
+function renderCourseOptions() {
+  const { courses, note } = scheduledCourses($("f-date").value, $("f-slot").value);
+  const sel = $("f-subject"), prev = sel.value;
+  sel.innerHTML = `<option value="">Select course</option>` + (courses.length
+    ? `<optgroup label="Scheduled in this slot">${courses.map(option).join("")}</optgroup><optgroup label="All other courses">${SUBJECTS.filter(n => !courses.includes(n)).map(option).join("")}</optgroup>`
+    : SUBJECTS.map(option).join(""));
+  sel.value = courses.includes(prev) ? prev : courses.length === 1 ? courses[0] : "";
+  $("slot-note").textContent = note;
+  $("slot-note").hidden = !note;
+  if (sel.value !== prev) onCourseChange();
+}
+
+renderProfOptions("");
+renderCourseOptions();
+$("f-date").addEventListener("input", renderCourseOptions);
+$("f-slot").addEventListener("input", renderCourseOptions);
+$("f-subject").addEventListener("input", onCourseChange);
+
+let current = { matched: [], problems: [] };
+
+function renderTake() {
+  current = parseAbsent($("f-absent").value);
+  const absentSet = new Set(current.matched);
+  $("s-total").textContent = STUDENTS.length;
+  $("s-absent").textContent = absentSet.size;
+  $("s-present").textContent = STUDENTS.length - absentSet.size;
+  $("btn-clear").hidden = !$("f-absent").value.trim();
+
+  $("absent-chips").innerHTML =
+    current.matched.map(r => `<span class="chip"><b>${esc(r)}</b>${esc(BY_REG.get(r).name)}<button type="button" data-remove="${esc(r)}" aria-label="Remove">${ic("x")}</button></span>`).join("") +
+    current.problems.map(p => `<span class="chip warn"><b>${esc(p.tok)}</b>${esc(p.reason)}</span>`).join("");
+
+  if ($("roster").hidden) return;
+  const words = queryWords($("picker-search").value);
+  $("picker").innerHTML = STUDENTS
+    .filter(s => matchesWords(`${s.reg} ${s.name}`, words))
+    .map(s => `<button type="button" class="roster-row ${absentSet.has(s.reg) ? "abs" : ""}" data-reg="${s.reg}"><code>${s.reg}</code><span>${esc(s.name)}</span></button>`).join("")
+    || `<div class="empty" style="grid-column:1/-1">No match</div>`;
+}
+
+function toggleAbsent(reg) {
+  const list = current.matched.includes(reg) ? current.matched.filter(r => r !== reg) : [...current.matched, reg];
+  $("f-absent").value = [...list, ...current.problems.map(p => p.tok)].join(", ");
+  renderTake();
+}
+
+$("f-absent").addEventListener("input", renderTake);
+$("picker-search").addEventListener("input", renderTake);
+$("picker").addEventListener("click", e => { const d = e.target.closest("[data-reg]"); if (d) toggleAbsent(d.dataset.reg); });
+$("absent-chips").addEventListener("click", e => { const b = e.target.closest("[data-remove]"); if (b) toggleAbsent(b.dataset.remove); });
+$("btn-clear").addEventListener("click", () => { $("f-absent").value = ""; renderTake(); });
+$("btn-roster").addEventListener("click", () => {
+  const show = $("roster").hidden;
+  $("roster").hidden = !show;
+  $("btn-roster").textContent = show ? "Hide student list" : "Pick from student list";
+  renderTake();
+});
+
+/* Validate the form and build a lecture record (not yet saved). */
+function buildRecord() {
+  const date = $("f-date").value, slot = $("f-slot").value, subject = $("f-subject").value, prof = $("f-prof").value, hall = $("f-hall").value;
+  const missing = [!date && "date", !slot && "time slot", !subject && "course", !prof && "professor", !hall && "lecture hall"].filter(Boolean);
+  if (missing.length) { alert("Please fill in: " + missing.join(", ")); return null; }
+  if (current.problems.length) { alert("Fix these reg. numbers first:\n\n" + current.problems.map(p => `${p.tok} (${p.reason})`).join("\n")); return null; }
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    date, slot, subject, prof, hall,
+    absent: [...current.matched].sort(),
+    roster: STUDENTS.map(s => s.reg),
+    createdAt: new Date().toISOString()
+  };
+}
+
+$("btn-download").addEventListener("click", async () => {
+  const rec = buildRecord(); if (!rec) return;
+  const btn = $("btn-download"); btn.disabled = true;
+  try { await downloadLectureExcel(rec); } finally { btn.disabled = false; }
+});
+
+$("btn-save").addEventListener("click", async () => {
+  const rec = buildRecord(); if (!rec) return;
+  if (!rec.absent.length && !confirm("No absentees entered. Save with ALL students present?")) return;
+  const dup = records.find(r => r.date === rec.date && r.slot === rec.slot && r.subject === rec.subject);
+  if (dup && !confirm("This course is already saved for the same date and time slot.\nSave another one anyway?")) return;
+
+  const btn = $("btn-save"); btn.disabled = true;
+  try {
+    const [saved] = await store.add([rec]);
+    records.push(saved);
+  } catch (e) {
+    alert("Couldn't save the lecture: " + errText(e));
+    return;
+  } finally {
+    btn.disabled = false;
+  }
+  $("f-absent").value = "";
+  renderTake();
+  renderDash();
+  toast(`Saved: ${rec.roster.length - rec.absent.length} present, ${rec.absent.length} absent`);
+});
+
+/* ---------------- Excel ---------------- */
+const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4E79" } };
+const ABSENT_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDECEA" } };
+const thin = { style: "thin", color: { argb: "FFD0D5DD" } };
+const BORDER = { top: thin, left: thin, bottom: thin, right: thin };
+
+function styleHeaderRow(row) {
+  row.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = HEADER_FILL; c.border = BORDER; c.alignment = { vertical: "middle" }; });
+  row.height = 20;
+}
+
+async function saveWorkbook(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function excelReady() {
+  if (window.ExcelJS) return true;
+  alert("The Excel library could not load (it needs an internet connection the first time). The record was still saved; download it again from the Dashboard once you're online.");
+  return false;
+}
+
+async function downloadLectureExcel(rec) {
+  if (!excelReady()) return;
+  const absent = new Set(rec.absent);
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Attendance");
+  ws.columns = [{ width: 7 }, { width: 13 }, { width: 42 }, { width: 14 }, { width: 15 }, { width: 12 }];
+
+  ws.mergeCells("A1:F1");
+  ws.getCell("A1").value = "Attendance Sheet";
+  ws.getCell("A1").font = { bold: true, size: 15, color: { argb: "FF1F4E79" } };
+
+  const present = rec.roster.length - absent.size;
+  [["Date", fmtDate(rec.date)], ["Time", slotLabel(rec)], ["Course", rec.subject], ["Professor", rec.prof], ["Lecture Hall", rec.hall],
+   ["Summary", `Present: ${present}   Absent: ${absent.size}   Total: ${rec.roster.length}   (${pct(present, rec.roster.length)}%)`]]
+    .forEach(([k, v], i) => {
+      const r = 2 + i;
+      ws.getCell(`A${r}`).value = k; ws.getCell(`A${r}`).font = { bold: true };
+      ws.mergeCells(`B${r}:F${r}`); ws.getCell(`B${r}`).value = v;
+    });
+
+  const headerRowNo = 9;
+  ws.getRow(headerRowNo).values = ["S.No", "Reg. No.", "Name", "Date", "Time", "Status"];
+  styleHeaderRow(ws.getRow(headerRowNo));
+
+  const [yy, mm, dd] = rec.date.split("-").map(Number);
+  const classDate = new Date(Date.UTC(yy, mm - 1, dd));
+  rec.roster.forEach((reg, i) => {
+    const isAbs = absent.has(reg);
+    const row = ws.addRow([i + 1, reg, BY_REG.get(reg)?.name ?? "", classDate, slotLabel(rec), isAbs ? "Absent" : "Present"]);
+    row.eachCell(c => { c.border = BORDER; if (isAbs) c.fill = ABSENT_FILL; });
+    row.getCell(4).numFmt = "dd-mmm-yyyy";
+    row.getCell(4).alignment = { horizontal: "left" };
+    row.getCell(6).font = { bold: true, color: { argb: isAbs ? "FFB42318" : "FF1A7F4B" } };
+  });
+
+  ws.autoFilter = { from: { row: headerRowNo, column: 1 }, to: { row: headerRowNo, column: 6 } };
+  ws.views = [{ state: "frozen", ySplit: headerRowNo }];
+
+  await saveWorkbook(wb, `Attendance_${rec.date}${rec.slot ? "_" + rec.slot.replace(":", "") : ""}_${slug(rec.subject).slice(0, 60)}.xlsx`);
+}
+
+async function downloadCombinedExcel(recs) {
+  if (!excelReady()) return;
+  const sorted = [...recs].sort(byDateAsc);
+  const wb = new ExcelJS.Workbook();
+
+  // Sheet 1: lecture summary
+  const ls = wb.addWorksheet("Lectures");
+  ls.columns = [{ width: 13 }, { width: 15 }, { width: 45 }, { width: 36 }, { width: 18 }, { width: 9 }, { width: 9 }, { width: 8 }, { width: 11 }, { width: 60 }];
+  ls.addRow(["Date", "Time", "Course", "Professor", "Lecture Hall", "Present", "Absent", "Total", "Attendance %", "Absent Reg. Nos."]);
+  styleHeaderRow(ls.getRow(1));
+  sorted.forEach(r => {
+    const p = r.roster.length - r.absent.length;
+    ls.addRow([fmtDate(r.date), slotLabel(r), r.subject, r.prof, r.hall, p, r.absent.length, r.roster.length, pct(p, r.roster.length), r.absent.join(", ")])
+      .eachCell(c => c.border = BORDER);
+  });
+  ls.views = [{ state: "frozen", ySplit: 1 }];
+
+  // Sheet 2: per-student summary
+  const stats = studentStats(sorted);
+  const ss = wb.addWorksheet("Student Summary");
+  ss.columns = [{ width: 13 }, { width: 42 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 13 }];
+  ss.addRow(["Reg. No.", "Name", "Attended", "Absent", "Lectures", "Attendance %"]);
+  styleHeaderRow(ss.getRow(1));
+  stats.forEach(s => {
+    const row = ss.addRow([s.reg, s.name, s.attended, s.absent, s.total, s.total ? s.pct : null]);
+    row.eachCell(c => { c.border = BORDER; if (s.total && s.pct < LOW_THRESHOLD) c.fill = ABSENT_FILL; });
+  });
+  ss.views = [{ state: "frozen", ySplit: 1 }];
+
+  // Sheet 3: register grid (P/A per lecture)
+  const rg = wb.addWorksheet("Register");
+  rg.addRow(["Reg. No.", "Name", ...sorted.map(r => `${fmtDate(r.date)} ${r.slot || ""}\n${r.subject}\n${r.hall}`)]);
+  styleHeaderRow(rg.getRow(1));
+  rg.getRow(1).height = 64;
+  rg.getRow(1).eachCell(c => c.alignment = { wrapText: true, vertical: "middle", horizontal: "center" });
+  rg.getColumn(1).width = 13; rg.getColumn(2).width = 38;
+  sorted.forEach((_, i) => rg.getColumn(3 + i).width = 22);
+  const absSets = sorted.map(r => ({ abs: new Set(r.absent), roster: new Set(r.roster) }));
+  STUDENTS.forEach(s => {
+    const row = rg.addRow([s.reg, s.name, ...absSets.map(x => !x.roster.has(s.reg) ? "" : x.abs.has(s.reg) ? "A" : "P")]);
+    row.eachCell((c, col) => {
+      c.border = BORDER;
+      if (col > 2) { c.alignment = { horizontal: "center" }; if (c.value === "A") { c.fill = ABSENT_FILL; c.font = { bold: true, color: { argb: "FFB42318" } }; } }
+    });
+  });
+  rg.views = [{ state: "frozen", xSplit: 2, ySplit: 1 }];
+
+  await saveWorkbook(wb, `Attendance_Report_${todayISO()}.xlsx`);
+}
+
+/* ---------------- Dashboard ---------------- */
+fillSelect($("d-subject"), SUBJECTS, "All courses");
+
+let subTab = "lectures";
+const FILTER_IDS = ["d-subject", "d-from", "d-to"];
+
+function filteredRecords() {
+  const s = $("d-subject").value, from = $("d-from").value, to = $("d-to").value;
+  return records.filter(r => (!s || r.subject === s) && (!from || r.date >= from) && (!to || r.date <= to));
+}
+
+function studentStats(recs) {
+  const sets = recs.map(r => ({ roster: new Set(r.roster), absent: new Set(r.absent) }));
+  return STUDENTS.map(s => {
+    let total = 0, absent = 0;
+    for (const x of sets) {
+      if (!x.roster.has(s.reg)) continue;
+      total++; if (x.absent.has(s.reg)) absent++;
+    }
+    return { ...s, total, absent, attended: total - absent, pct: pct(total - absent, total) };
+  });
+}
+
+/* Minimum attendance: 80% for 3-credit courses, 75% for 1.5-credit courses. */
+const attendanceLimit = course => COURSES[course]?.credits === 1.5 ? 75 : 80;
+
+/* For each student, their attendance in every course, and the course where they are closest to
+   (or furthest below) that course's limit. */
+function studentCourseStats(recs) {
+  const byReg = new Map(STUDENTS.map(s => [s.reg, new Map()]));
+  for (const r of recs) {
+    const absent = new Set(r.absent);
+    for (const reg of r.roster) {
+      const courses = byReg.get(reg); if (!courses) continue;
+      const c = courses.get(r.subject) || { total: 0, absent: 0 };
+      c.total++; if (absent.has(reg)) c.absent++;
+      courses.set(r.subject, c);
+    }
+  }
+  return STUDENTS.map(s => {
+    const courses = [...byReg.get(s.reg)].map(([course, c]) => {
+      const p = pct(c.total - c.absent, c.total), limit = attendanceLimit(course);
+      return { course, limit, total: c.total, attended: c.total - c.absent, pct: p, margin: p - limit };
+    }).sort((a, b) => a.course.localeCompare(b.course));
+    return { ...s, courses, belowCount: courses.filter(c => c.margin < 0).length };
+  });
+}
+
+const studentStatus = s => !s.courses.length ? `<span class="sub">No lectures</span>`
+  : s.belowCount ? `<span class="status bad">Below limit in ${s.belowCount} course${s.belowCount > 1 ? "s" : ""}</span>`
+  : `<span class="status ok">Within limit</span>`;
+
+/* Reg. no. order: batch (the /62 part) first, then the serial number. */
+const byRegNo = (a, b) => { const [an, ab] = a.reg.split("/"), [bn, bb] = b.reg.split("/"); return ab.localeCompare(bb) || an.localeCompare(bn); };
+
+const lecturePct = r => pct(r.roster.length - r.absent.length, r.roster.length);
+const byDateAsc = (a, b) => a.date.localeCompare(b.date) || (a.slot || "").localeCompare(b.slot || "") || a.createdAt.localeCompare(b.createdAt);
+
+const PAGE_SIZE = 25;
+const pages = { lectures: 1, students: 1 };
+
+function pageSlice(rows, key) {
+  const count = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  pages[key] = Math.min(Math.max(1, pages[key]), count);
+  const start = (pages[key] - 1) * PAGE_SIZE;
+  const pager = rows.length <= PAGE_SIZE ? "" : `<div class="pager">
+    <span>${start + 1}–${Math.min(start + PAGE_SIZE, rows.length)} of ${rows.length}</span>
+    <div><button class="btn sm" data-page="-1" ${pages[key] === 1 ? "disabled" : ""}>Previous</button>
+    <button class="btn sm" data-page="1" ${pages[key] === count ? "disabled" : ""}>Next</button></div></div>`;
+  return { rows: rows.slice(start, start + PAGE_SIZE), pager };
+}
+
+function renderDash({ keepPage = false } = {}) {
+  if (!keepPage) { pages.lectures = 1; pages.students = 1; }
+  const recs = filteredRecords().sort((a, b) => byDateAsc(b, a));
+  const words = queryWords($("table-search").value);
+  const stats = studentCourseStats(recs);
+
+  $("k-low").textContent = stats.filter(s => s.belowCount).length;
+  $("btn-export-all").disabled = !recs.length;
+  $("filters-meta").hidden = FILTER_IDS.every(id => !$(id).value);
+  $("btn-mock-clear").hidden = !(canUseSamples() && records.some(r => r.mock));
+
+  const pctCellHTML = p => `<span class="pct ${p < LOW_THRESHOLD ? "t-bad" : ""}">${p}%</span>`;
+
+  if (subTab === "lectures") {
+    const matching = recs.filter(r => matchesWords(`${fmtDate(r.date)} ${r.date} ${r.slot || ""} ${r.subject} ${r.prof} ${r.hall}`, words));
+    const { rows, pager } = pageSlice(matching, "lectures");
+    $("sub-lectures").innerHTML = !recs.length
+      ? `<div class="empty">${records.length ? "No lectures match these filters." : "No lectures saved yet."}</div>`
+      : !matching.length ? `<div class="empty">No lectures match your search.</div>`
+      : `<div class="table-wrap"><table class="lect"><thead><tr><th>Date</th><th>Course</th><th>Hall</th><th class="num c-present">Present</th><th class="num">Attendance</th><th><span hidden>Actions</span></th></tr></thead><tbody>` +
+        rows.map(r => `<tr>
+          <td class="c-when nowrap"><div class="two"><b>${fmtDate(r.date)}</b><small>${r.slot ? slotLabel(r) : "No time"}</small></div></td>
+          <td class="c-course"><div class="two"><b>${esc(r.subject)}</b><small>${esc(r.prof)}</small></div></td>
+          <td class="c-hall sub">${esc(r.hall)}</td>
+          <td class="c-present num">${r.roster.length - r.absent.length}<span class="sub"> / ${r.roster.length}</span></td>
+          <td class="c-pct num">${pctCellHTML(lecturePct(r))}</td>
+          <td class="acts"><div>
+            <button class="icon-btn" data-act="view" data-id="${r.id}" title="View absentees" aria-label="View absentees">${ic("eye")}</button>
+            <button class="icon-btn" data-act="xlsx" data-id="${r.id}" title="Download Excel" aria-label="Download Excel">${ic("download")}</button>
+            ${canDelete(r) ? `<button class="icon-btn danger" data-act="del" data-id="${r.id}" title="Delete" aria-label="Delete">${ic("trash")}</button>` : ""}
+          </div></td></tr>`).join("") + `</tbody></table></div>` + pager;
+  } else {
+    const onlyLow = $("only-low").checked;
+    const matching = stats
+      .filter(s => (!onlyLow || s.belowCount) && matchesWords(`${s.reg} ${s.name}`, words))
+      .sort(byRegNo);
+    const { rows, pager } = pageSlice(matching, "students");
+    $("sub-students").innerHTML = !recs.length
+      ? `<div class="empty">No lectures saved yet.</div>`
+      : !matching.length
+        ? `<div class="empty">${onlyLow && !words.length ? "No students are below the attendance limit." : "No students match your search."}</div>`
+        : `<div class="table-wrap"><table><thead><tr><th>Reg. No.</th><th>Name</th><th>Status</th><th><span hidden>Details</span></th></tr></thead><tbody>` +
+          rows.map(s => `<tr class="clickable" data-reg="${s.reg}" tabindex="0" title="View course-wise attendance">
+              <td class="sub nowrap">${s.reg}</td><td class="c-name">${esc(s.name)}</td>
+              <td>${studentStatus(s)}</td>
+              <td class="chev">${ic("chevronRight")}</td></tr>`).join("") + `</tbody></table></div>` + pager;
+  }
+
+  $("sub-lectures").hidden = subTab !== "lectures";
+  $("sub-students").hidden = subTab !== "students";
+  $("only-low-wrap").hidden = subTab !== "students";
+  $("table-search").placeholder = subTab === "students" ? "Search students" : "Search lectures";
+}
+
+function studentSummaryHTML(s) {
+  const attended = s.courses.reduce((n, c) => n + c.attended, 0), total = s.courses.reduce((n, c) => n + c.total, 0);
+  return `<h3>${esc(s.name)}</h3>
+    <p>${s.reg} · ${studentStatus(s)}</p>
+    ${total ? `<p>Overall: ${attended} / ${total} classes attended (${pct(attended, total)}%) across ${s.courses.length} course${s.courses.length > 1 ? "s" : ""}</p>` : ""}`;
+}
+
+function studentCoursesHTML(s) {
+  return s.courses.length
+    ? `<table><thead><tr><th>Course</th><th class="num">Attended</th><th class="num">Attendance</th></tr></thead><tbody>${s.courses.map(c => `
+        <tr class="${c.margin < 0 ? "below-row" : ""}">
+          <td class="c-name"><div class="two"><b>${esc(c.course)}</b><small>${COURSES[c.course]?.credits ?? "–"} credits · minimum ${c.limit}%</small></div></td>
+          <td class="num">${c.attended}<span class="sub"> / ${c.total}</span></td>
+          <td class="num"><span class="pct ${c.margin < 0 ? "t-bad" : ""}">${c.pct}%</span></td>
+        </tr>`).join("")}</tbody></table>`
+    : `<div class="empty">No lectures recorded yet.</div>`;
+}
+
+function showStudent(reg) {
+  const s = studentCourseStats(filteredRecords()).find(x => x.reg === reg); if (!s) return;
+  const filters = [$("d-subject").value, $("d-from").value && `from ${fmtDate($("d-from").value)}`, $("d-to").value && `to ${fmtDate($("d-to").value)}`].filter(Boolean);
+  const bg = document.createElement("div"); bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="${esc(s.name)}">
+    <div class="modal-head">
+      <div style="flex:1;min-width:0">
+        ${studentSummaryHTML(s)}
+        ${filters.length ? `<p class="sub">Filtered: ${esc(filters.join(", "))}</p>` : ""}
+      </div>
+      <button class="icon-btn" data-close title="Close" aria-label="Close">${ic("x")}</button>
+    </div>
+    <div class="modal-body">${studentCoursesHTML(s)}</div>
+    <div class="modal-foot"><button class="btn" data-close>Close</button></div></div>`;
+  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  bg.addEventListener("click", e => { if (e.target === bg || e.target.closest("[data-close]")) close(); });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(bg);
+  bg.querySelector(".modal-foot .btn").focus();
+}
+
+function showAbsentees(rec) {
+  const bg = document.createElement("div"); bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div style="flex:1;min-width:0">
+        <h3>${esc(rec.subject)}</h3>
+        <p>${fmtDate(rec.date)}${rec.slot ? ", " + slotLabel(rec) : ""} · ${esc(rec.prof)} · ${esc(rec.hall)}</p>
+        <p><span class="t-ok">${rec.roster.length - rec.absent.length} present</span> · <span class="t-bad">${rec.absent.length} absent</span></p>
+      </div>
+      <button class="icon-btn" data-close title="Close">${ic("x")}</button>
+    </div>
+    <div class="modal-body">
+      ${rec.absent.length
+        ? `<table><tbody>${rec.absent.map(r => `<tr><td class="sub">${r}</td><td>${esc(BY_REG.get(r)?.name ?? "")}</td></tr>`).join("")}</tbody></table>`
+        : `<div class="empty">Everyone was present.</div>`}
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>Close</button>
+      <button class="btn primary" data-dl>Download Excel</button>
+    </div></div>`;
+  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  bg.addEventListener("click", e => {
+    if (e.target === bg || e.target.closest("[data-close]")) close();
+    if (e.target.closest("[data-dl]")) downloadLectureExcel(rec);
+  });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(bg);
+}
+
+function onPagerClick(key) {
+  return e => {
+    const b = e.target.closest("[data-page]"); if (!b) return false;
+    pages[key] += +b.dataset.page;
+    renderDash({ keepPage: true });
+    $(key === "lectures" ? "sub-lectures" : "sub-students").closest(".card").scrollIntoView({ block: "start" });
+    return true;
+  };
+}
+const studentPager = onPagerClick("students");
+$("sub-students").addEventListener("click", e => {
+  if (studentPager(e)) return;
+  const row = e.target.closest("tr[data-reg]"); if (row) showStudent(row.dataset.reg);
+});
+$("sub-students").addEventListener("keydown", e => {
+  const row = e.target.closest("tr[data-reg]");
+  if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showStudent(row.dataset.reg); }
+});
+const lecturePager = onPagerClick("lectures");
+$("sub-lectures").addEventListener("click", async e => {
+  if (lecturePager(e)) return;
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const rec = records.find(r => r.id === b.dataset.id); if (!rec) return;
+  if (b.dataset.act === "view") showAbsentees(rec);
+  if (b.dataset.act === "xlsx") await downloadLectureExcel(rec);
+  if (b.dataset.act === "del" && confirm(`Delete ${rec.subject} on ${fmtDate(rec.date)} (${rec.hall})? This cannot be undone.`)) {
+    try { await store.remove(rec.id); } catch (err) { alert("Couldn't delete the lecture: " + errText(err)); return; }
+    records = records.filter(r => r.id !== rec.id); renderDash({ keepPage: true }); toast("Lecture deleted");
+  }
+});
+
+FILTER_IDS.forEach(id => $(id).addEventListener("input", renderDash));
+$("btn-reset-filters").addEventListener("click", () => { FILTER_IDS.forEach(id => $(id).value = ""); renderDash(); });
+$("table-search").addEventListener("input", renderDash);
+$("only-low").addEventListener("change", renderDash);
+$("subtabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-sub]"); if (!b) return;
+  if (subTab !== b.dataset.sub) $("table-search").value = "";
+  subTab = b.dataset.sub;
+  $("subtabs").querySelectorAll("[data-sub]").forEach(x => x.classList.toggle("active", x === b));
+  renderDash();
+});
+$("btn-export-all").addEventListener("click", () => downloadCombinedExcel(filteredRecords()));
+
+/* Sample data for testing: every class held from term start until now, with mock enrollments and absences.
+   - Enrollment: each student takes MOCK_CREDITS_MIN to MOCK_CREDITS_MAX credits, one section per course
+     (e.g. only -A or -B), and never two courses that meet at the same time. Class sizes are balanced.
+   - Absences are decided per student per course over the classes held so far, then scattered at random:
+     most students miss about MOCK_ABSENCE_RATE of classes but stay at or above each course's limit today;
+     at most MOCK_MAX_BELOW_SHARE of students struggle, each in 1 to 4 courses, ending up to 15 points under
+     that course's limit.
+   These enrollments exist only in the sample data; real attendance still covers the full roster.
+   Records are tagged mock: true so they can be removed without touching real ones. */
+const MOCK_MAX_BELOW_SHARE = 0.05;
+const MOCK_CREDITS_MIN = 18, MOCK_CREDITS_MAX = 21;
+const MOCK_ABSENCE_RATE = 0.05;
+
+function generateMockRecords() {
+  let seed = 20260824;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // Every class of the term, and the ones that have already started (nothing later than now).
+  const sessions = [];
+  for (const d = new Date(TERM.start + "T00:00"); isoOf(d) <= TERM.end; d.setDate(d.getDate() + 1)) {
+    for (const slot of SLOTS) for (const subject of scheduledCourses(isoOf(d), slot).courses) sessions.push({ date: isoOf(d), slot, subject });
+  }
+  const now = new Date(), today = todayISO();
+  const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const held = sessions.filter(x => x.date < today || (x.date === today && x.slot <= nowHM));
+
+  // Which courses can't be taken together: they meet at the same date and time, or are sections of one course.
+  const meets = new Map(SUBJECTS.map(c => [c, new Set()]));
+  sessions.forEach(x => meets.get(x.subject).add(`${x.date} ${x.slot}`));
+  const section = c => c.replace(/-[AB]$/, "");
+  const conflicts = new Map(SUBJECTS.map(a => [a, new Set(SUBJECTS.filter(b => b !== a &&
+    (section(a) === section(b) || [...meets.get(a)].some(k => meets.get(b).has(k)))))]));
+
+  // Mock enrollments, filling the emptiest courses first so class sizes stay balanced.
+  const rosters = new Map(SUBJECTS.map(c => [c, []]));
+  const coursesOf = new Map();
+  for (const st of STUDENTS) {
+    const target = MOCK_CREDITS_MIN + Math.floor(rnd() * ((MOCK_CREDITS_MAX - MOCK_CREDITS_MIN) / 1.5 + 1)) * 1.5;
+    const mine = []; let credits = 0;
+    const order = SUBJECTS.map(c => ({ c, key: rosters.get(c).length + rnd() * 15 })).sort((a, b) => a.key - b.key);
+    for (const { c } of order) {
+      const cr = COURSES[c].credits;
+      if (credits + cr > target || mine.some(m => conflicts.get(m).has(c))) continue;
+      mine.push(c); credits += cr; rosters.get(c).push(st.reg);
+      if (credits >= target) break;
+    }
+    coursesOf.set(st.reg, mine);
+  }
+
+  // For each course: the classes held so far, the most absences that keep a student at or above the limit,
+  // and the most that keep a struggling student within 15 points below it.
+  const heldIdx = new Map(SUBJECTS.map(c => [c, []]));
+  held.forEach((x, i) => heldIdx.get(x.subject).push(i));
+  const maxOk = c => Math.floor(heldIdx.get(c).length * (100 - attendanceLimit(c)) / 100);
+  const maxStruggle = c => Math.floor(heldIdx.get(c).length * (115 - attendanceLimit(c)) / 100);
+
+  // Struggling students: evenly spread, each below the limit in 1 to 4 of their courses.
+  const maxBelow = Math.floor(STUDENTS.length * MOCK_MAX_BELOW_SHARE);
+  const every = Math.ceil(STUDENTS.length / Math.max(maxBelow, 1));
+  const struggling = new Map();
+  STUDENTS.forEach((st, i) => {
+    if (struggling.size >= maxBelow || i % every !== 3) return;
+    const options = coursesOf.get(st.reg).filter(c => maxStruggle(c) > maxOk(c)).sort(() => rnd() - 0.5);
+    const picked = options.slice(0, 1 + Math.floor(rnd() * 4));
+    if (picked.length) struggling.set(st.reg, new Set(picked));
+  });
+
+  // Attendance: how many classes each student misses per course, scattered at random over the classes held.
+  const absentAt = held.map(() => []);
+  for (const c of SUBJECTS) {
+    const idx = heldIdx.get(c); if (!idx.length) continue;
+    for (const reg of rosters.get(c)) {
+      let k;
+      if (struggling.get(reg)?.has(c)) k = maxOk(c) + 1 + Math.floor(rnd() * (maxStruggle(c) - maxOk(c)));
+      else { k = 0; for (let j = 0; j < idx.length; j++) if (rnd() < MOCK_ABSENCE_RATE) k++; k = Math.min(k, maxOk(c)); }
+      const pool = [...idx];
+      for (let j = 0; j < k; j++) {
+        const pick = j + Math.floor(rnd() * (pool.length - j));
+        [pool[j], pool[pick]] = [pool[pick], pool[j]];
+        absentAt[pool[j]].push(reg);
+      }
+    }
+  }
+
+  return held.map(({ date, slot, subject }, i) => {
+    const roster = rosters.get(subject), absent = absentAt[i];
+    return {
+      id: `mock-${date}-${slot.replace(":", "")}-${slug(subject)}`,
+      mock: true, date, slot, subject,
+      prof: COURSES[subject].profs.join(" / "), hall: COURSES[subject].hall,
+      absent, roster,
+      createdAt: new Date(`${date}T${slot}:00`).toISOString()
+    };
+  });
+}
+
+$("btn-mock-load").addEventListener("click", async () => {
+  // Replace any previously loaded sample lectures so the latest sample data is always used.
+  const btn = $("btn-mock-load"); btn.disabled = true;
+  try {
+    await store.removeSamples();
+    records = records.filter(r => !r.mock);
+    const saved = await store.add(generateMockRecords());
+    records = records.concat(saved);
+    toast(`Loaded ${saved.length} sample lectures`);
+  } catch (e) {
+    alert("Couldn't load sample data: " + errText(e));
+    records = await store.list().catch(() => records);
+  } finally {
+    btn.disabled = false;
+    renderDash();
+  }
+});
+$("btn-mock-clear").addEventListener("click", async () => {
+  try {
+    const n = await store.removeSamples();
+    records = records.filter(r => !r.mock); renderDash();
+    toast(`Removed ${n} sample lectures`);
+  } catch (e) {
+    alert("Couldn't remove sample data: " + errText(e));
+  }
+});
+
+/* Backup / restore (data lives only in this browser) */
+$("btn-backup").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({ app: "IncAttendance", version: 1, exportedAt: new Date().toISOString(), records }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `IncAttendance_backup_${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+$("btn-restore").addEventListener("click", () => $("restore-file").click());
+$("restore-file").addEventListener("change", async e => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const incoming = Array.isArray(data) ? data : data.records;
+    if (!Array.isArray(incoming)) throw new SyntaxError();
+    const ids = new Set(records.map(r => r.id));
+    const valid = incoming.filter(r => r && r.id && r.date && Array.isArray(r.absent) && Array.isArray(r.roster));
+    const added = await store.add(valid.filter(r => !ids.has(r.id)));
+    records = records.concat(added); renderDash();
+    toast(`Restored ${added.length} lecture(s)${valid.length - added.length ? `, skipped ${valid.length - added.length} already present` : ""}`);
+  } catch (err) { alert(err instanceof SyntaxError ? "That file isn't a valid IncAttendance backup." : "Couldn't restore: " + errText(err)); }
+});
+
+/* ---------------- Roles and tabs ---------------- */
+// Which pages each role sees. The database enforces the same rules on the data itself.
+const TAB_ROLES = { take: ["admin", "office"], dash: ["admin", "office", "faculty"], mine: ["student"], access: ["admin"] };
+const canWrite = () => ["admin", "office"].includes(access?.role);
+const canUseSamples = () => canWrite() && !!access.allow_sample_data;
+
+function canDelete(r) {
+  if (!access) return false;
+  if (access.local || access.role === "admin") return true;
+  return access.role === "office" && r.createdBy === access.email
+    && Date.now() - new Date(r.createdAt).getTime() < access.office_delete_hours * 3600e3;
+}
+
+const allowedTabs = () => Object.keys(TAB_ROLES).filter(t => TAB_ROLES[t].includes(access.role) && (t !== "access" || ONLINE));
+
+function showTab(name) {
+  document.querySelectorAll(".tabs [data-tab]").forEach(x => x.classList.toggle("active", x.dataset.tab === name));
+  for (const t of Object.keys(TAB_ROLES)) $("tab-" + t).hidden = t !== name;
+  if (name === "dash") renderDash();
+  if (name === "mine") renderMine();
+  if (name === "access") renderAccess();
+  window.scrollTo({ top: 0 });
+}
+
+// Sign-in screens replace the whole page until someone with access is signed in.
+function showGate(name) {
+  for (const g of ["loading", "signin", "noaccess"]) $("gate-" + g).hidden = g !== name;
+  if (name) {
+    for (const t of Object.keys(TAB_ROLES)) $("tab-" + t).hidden = true;
+    document.querySelector(".tabs").hidden = true;
+  }
+}
+
+function applyAccess() {
+  const tabs = allowedTabs();
+  document.querySelectorAll(".tabs [data-tab]").forEach(b => b.hidden = !tabs.includes(b.dataset.tab));
+  document.querySelector(".tabs").hidden = tabs.length < 2;
+  $("btn-mock-load").hidden = !canUseSamples();
+  $("restore-wrap").hidden = !(access.local || access.role === "admin");
+  $("store-note").textContent = ONLINE ? "Records are stored in the online database." : "Records are stored in this browser.";
+  $("user-box").hidden = !ONLINE;
+  if (ONLINE) {
+    $("user-email").textContent = access.email;
+    $("user-role").textContent = ROLE_LABELS[access.role] || access.role;
+  }
+  showTab(tabs[0]);
+}
+
+document.querySelectorAll(".tabs [data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+if (!ONLINE) window.addEventListener("storage", e => { if (e.key === STORE_KEY) { records = loadRecords(); renderDash(); } });
+
+/* ---------------- My attendance (students) ---------------- */
+function renderMine() {
+  const s = studentCourseStats(records).find(x => x.reg === access.reg);
+  $("mine-body").innerHTML = s
+    ? `<div class="mine-head">${studentSummaryHTML(s)}</div><div class="table-wrap">${studentCoursesHTML(s)}</div>`
+    : `<div class="empty">Your reg. no. isn't on the student list. Contact the MBA office.</div>`;
+}
+
+/* ---------------- Access (admin, online mode) ---------------- */
+fillSelect($("m-faculty"), FACULTY, "Select professor");
+$("m-role").addEventListener("change", () => { $("m-faculty-field").hidden = $("m-role").value !== "faculty"; });
+
+async function renderAccess() {
+  $("members-table").innerHTML = `<div class="empty">Loading…</div>`;
+  const [members, students] = await Promise.all([
+    sb.from("members").select("email, role, faculty_name").order("role").order("email"),
+    sb.from("students").select("reg, email")
+  ]);
+  const error = members.error || students.error;
+  if (error) { $("members-table").innerHTML = `<div class="empty">Couldn't load access list: ${esc(errText(error))}</div>`; return; }
+
+  $("members-table").innerHTML = members.data.length
+    ? `<table><thead><tr><th>Email</th><th>Role</th><th>Professor</th><th><span hidden>Remove</span></th></tr></thead><tbody>${members.data.map(m => `
+        <tr><td>${esc(m.email)}</td><td>${esc(ROLE_LABELS[m.role] || m.role)}</td><td class="sub">${esc(m.faculty_name || "–")}</td>
+          <td class="acts">${m.email === access.email ? "" : `<button class="icon-btn danger" data-remove-member="${esc(m.email)}" title="Remove access" aria-label="Remove access for ${esc(m.email)}">${ic("trash")}</button>`}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty">No staff or faculty added yet.</div>`;
+
+  const linked = students.data.filter(x => x.email).sort(byRegNo);
+  $("student-email-count").textContent = `${linked.length} of ${students.data.length} linked`;
+  $("student-emails").value = linked.map(x => `${x.reg}, ${x.email}`).join("\n");
+}
+
+$("btn-add-member").addEventListener("click", async () => {
+  const email = $("m-email").value.trim(), role = $("m-role").value, faculty = $("m-faculty").value;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return alert("Enter a valid email address.");
+  if (!role) return alert("Pick a role.");
+  if (role === "faculty" && !faculty) return alert("Pick which professor this account belongs to.");
+  const { error } = await sb.rpc("set_member", { p_email: email, p_role: role, p_faculty_name: role === "faculty" ? faculty : null });
+  if (error) return alert("Couldn't give access: " + errText(error));
+  $("m-email").value = ""; $("m-role").value = ""; $("m-faculty").value = ""; $("m-faculty-field").hidden = true;
+  toast(`Access given to ${email.toLowerCase()}`);
+  renderAccess();
+});
+
+$("members-table").addEventListener("click", async e => {
+  const b = e.target.closest("[data-remove-member]"); if (!b) return;
+  if (!confirm(`Remove access for ${b.dataset.removeMember}?`)) return;
+  const { error } = await sb.rpc("remove_member", { p_email: b.dataset.removeMember });
+  if (error) return alert("Couldn't remove access: " + errText(error));
+  toast("Access removed");
+  renderAccess();
+});
+
+$("btn-save-emails").addEventListener("click", async () => {
+  const links = [], bad = [];
+  for (const line of $("student-emails").value.split("\n").map(l => l.trim()).filter(Boolean)) {
+    const [regToken, email = ""] = line.split(/[\s,;]+/);
+    const { matched } = parseAbsent(regToken);  // same reg. no. rules as the attendance form (171/62 works)
+    if (matched.length !== 1 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) bad.push(line);
+    else links.push({ reg: matched[0], email: email.toLowerCase() });
+  }
+  if (bad.length) return alert("Fix these lines first (format: reg. no., email):\n\n" + bad.join("\n"));
+  const { data: current, error: readError } = await sb.from("students").select("reg, email");
+  if (readError) return alert("Couldn't save: " + errText(readError));
+  const listed = new Set(links.map(l => l.reg));
+  current.filter(x => x.email && !listed.has(x.reg)).forEach(x => links.push({ reg: x.reg, email: "" }));  // removed lines unlink
+  const { error } = await sb.rpc("set_student_emails", { p_links: links });
+  if (error) return alert("Couldn't save: " + errText(error));
+  toast("Student emails saved");
+  renderAccess();
+});
+
+/* ---------------- Sign-in (online mode) ---------------- */
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+$("btn-signout").addEventListener("click", signOut);
+$("btn-signout-2").addEventListener("click", signOut);
+$("btn-google").addEventListener("click", async () => {
+  const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+  if (error) alert("Couldn't start sign-in: " + errText(error));
+});
+
+async function boot() {
+  hydrateIcons();
+  renderTake();
+  if (!ONLINE) { records = loadRecords(); applyAccess(); return; }
+
+  showGate("loading");
+  const fail = msg => { $("loading-text").textContent = msg; showGate("loading"); };
+  if (!sb) return fail("Couldn't load the sign-in library. Check the internet connection and reload.");
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showGate("signin");
+
+  const { data, error } = await sb.rpc("my_access");
+  if (error) return fail("Couldn't check your access: " + errText(error));
+  access = data;
+  if (!access.role) { $("noaccess-email").textContent = access.email; $("user-box").hidden = true; return showGate("noaccess"); }
+  try { records = await store.list(); } catch (e) { return fail("Couldn't load attendance: " + errText(e)); }
+  showGate(null);
+  applyAccess();
+}
+
+/* ---------------- Searchable dropdowns ----------------
+   Wraps a native <select>, which stays the source of truth: code keeps reading/writing
+   select.value and rebuilding its options, and the combo re-renders to match. */
+const SELECT_VALUE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+
+function enhanceSelect(sel, searchPlaceholder = "Type to search") {
+  const wrap = document.createElement("div");
+  wrap.className = "combo";
+  wrap.innerHTML = `<button type="button" class="combo-btn" aria-haspopup="listbox" aria-expanded="false"><span class="combo-val"></span>${ic("chevron")}</button><button type="button" class="combo-clear" aria-label="Clear selection" hidden>${ic("x")}</button>
+    <div class="combo-pop" hidden><div class="combo-search-wrap"><input type="search" placeholder="${esc(searchPlaceholder)}" aria-label="${esc(searchPlaceholder)}"></div><div class="combo-list" role="listbox"></div></div>`;
+  sel.parentNode.insertBefore(wrap, sel);
+  wrap.appendChild(sel);
+  sel.hidden = true;
+  sel.tabIndex = -1;
+
+  const btn = wrap.querySelector(".combo-btn"), val = wrap.querySelector(".combo-val"), clear = wrap.querySelector(".combo-clear");
+  const pop = wrap.querySelector(".combo-pop"), search = pop.querySelector("input"), list = pop.querySelector(".combo-list");
+  btn.id = sel.id + "-combo";
+  const label = document.querySelector(`label[for="${sel.id}"]`);
+  if (label) label.htmlFor = btn.id;
+  if (sel.getAttribute("aria-label")) btn.setAttribute("aria-label", sel.getAttribute("aria-label"));
+
+  let items = [], active = -1;
+
+  function syncButton() {
+    const opt = sel.options[sel.selectedIndex];
+    const placeholder = sel.querySelector('option[value=""]')?.textContent ?? "";
+    val.textContent = sel.value && opt ? opt.textContent : placeholder;
+    val.classList.toggle("placeholder", !sel.value);
+    btn.title = sel.value && opt ? opt.textContent : "";
+    clear.hidden = !sel.value;
+    wrap.classList.toggle("has-value", !!sel.value);
+  }
+
+  function highlight(text, words) {
+    const lower = text.toLowerCase(), marked = new Array(text.length).fill(false);
+    for (const w of words) {
+      for (let i = lower.indexOf(w); i !== -1; i = lower.indexOf(w, i + w.length)) marked.fill(true, i, i + w.length);
+    }
+    let html = "", on = false;
+    for (let i = 0; i < text.length; i++) {
+      if (marked[i] !== on) { html += on ? "</mark>" : "<mark>"; on = marked[i]; }
+      html += esc(text[i]);
+    }
+    return html + (on ? "</mark>" : "");
+  }
+
+  function renderList() {
+    const words = queryWords(search.value);
+    items = []; let html = "";
+    const addOpt = o => {
+      if (!o.value || (words.length && !matchesWords(o.textContent, words))) return false;
+      const i = items.push(o) - 1, selected = o.value === sel.value;
+      html += `<div class="combo-opt${selected ? " selected" : ""}" role="option" aria-selected="${selected}" data-i="${i}"><span>${highlight(o.textContent, words)}</span>${selected ? ic("check") : ""}</div>`;
+      return true;
+    };
+    for (const node of sel.children) {
+      if (node.tagName === "OPTGROUP") {
+        const start = html.length, header = `<div class="combo-group">${esc(node.label)}</div>`;
+        html += header;
+        if (![...node.children].map(addOpt).some(Boolean)) html = html.slice(0, start);
+      } else addOpt(node);
+    }
+    list.innerHTML = html || `<div class="combo-empty">No matches</div>`;
+    const selIdx = items.findIndex(o => o.value === sel.value && o.value);
+    setActive(words.length ? 0 : Math.max(selIdx, 0));
+  }
+
+  function setActive(i) {
+    active = items.length ? Math.max(0, Math.min(i, items.length - 1)) : -1;
+    list.querySelectorAll(".combo-opt").forEach(el => el.classList.toggle("active", +el.dataset.i === active));
+    list.querySelector(".combo-opt.active")?.scrollIntoView({ block: "nearest" });
+  }
+
+  function open(initial = "") {
+    if (wrap.classList.contains("open")) return;
+    document.querySelectorAll(".combo.open").forEach(c => c.closeCombo());
+    wrap.classList.add("open"); pop.hidden = false; btn.setAttribute("aria-expanded", "true");
+    pop.classList.remove("right", "up");
+    const rect = wrap.getBoundingClientRect(), below = window.innerHeight - rect.bottom;
+    if (below < 360 && rect.top - 64 > below) pop.classList.add("up");
+    if (pop.getBoundingClientRect().right > window.innerWidth - 8) pop.classList.add("right");
+    search.value = initial;
+    renderList();
+    search.focus();
+  }
+  function close(refocus) {
+    wrap.classList.remove("open"); pop.hidden = true; btn.setAttribute("aria-expanded", "false");
+    if (refocus) btn.focus();
+  }
+  wrap.closeCombo = () => close(false);
+
+  function choose(i) {
+    const opt = items[i]; if (!opt) return;
+    close(true);
+    if (opt.value === sel.value) return;
+    sel.value = opt.value;
+    sel.dispatchEvent(new Event("input", { bubbles: true }));
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  btn.addEventListener("click", () => wrap.classList.contains("open") ? close(true) : open());
+  clear.addEventListener("click", () => {
+    close(false);
+    sel.value = "";
+    sel.dispatchEvent(new Event("input", { bubbles: true }));
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    btn.focus();
+  });
+  btn.addEventListener("keydown", e => {
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); open(); }
+    else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); open(e.key); }
+  });
+  search.addEventListener("input", renderList);
+  search.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === "Enter") { e.preventDefault(); choose(active); }
+    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(true); }
+    else if (e.key === "Tab") close(false);
+  });
+  list.addEventListener("mousedown", e => e.preventDefault());
+  list.addEventListener("click", e => { const o = e.target.closest(".combo-opt"); if (o) choose(+o.dataset.i); });
+  list.addEventListener("mousemove", e => { const o = e.target.closest(".combo-opt"); if (o && +o.dataset.i !== active) setActive(+o.dataset.i); });
+
+  // Keep in sync when code rebuilds the options or assigns select.value directly.
+  new MutationObserver(() => { syncButton(); if (wrap.classList.contains("open")) renderList(); })
+    .observe(sel, { childList: true, subtree: true });
+  Object.defineProperty(sel, "value", {
+    configurable: true,
+    get() { return SELECT_VALUE.get.call(this); },
+    set(v) { SELECT_VALUE.set.call(this, v); syncButton(); }
+  });
+  syncButton();
+}
+
+document.addEventListener("mousedown", e => {
+  document.querySelectorAll(".combo.open").forEach(c => { if (!c.contains(e.target)) c.closeCombo(); });
+});
+[["f-slot", "Search time slots"], ["f-subject", "Search courses"], ["f-prof", "Search professors"], ["f-hall", "Search halls"],
+ ["d-subject", "Search courses"]]
+  .forEach(([id, placeholder]) => enhanceSelect($(id), placeholder));
+enhanceSelect($("m-role"), "Search roles");
+enhanceSelect($("m-faculty"), "Search professors");
+
+boot();
+</script>
+</body>
+</html>
