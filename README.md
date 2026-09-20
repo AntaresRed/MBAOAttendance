@@ -126,6 +126,55 @@ The other app then connects with a normal Postgres connection string (Supabase: 
 session pooler), using `reporting_reader` as the user. To cut its access, run
 `alter role reporting_reader nologin;`.
 
+## Nightly sync to IIMPresent
+
+`sync/send-attendance.mjs` sends our attendance to IIMPresent every night, following
+[docs/IIMPRESENT-SYNC.md](docs/IIMPRESENT-SYNC.md) sections 1–6. It needs Node 18 or newer and no packages.
+
+What it does: reads our records through the `sync_*` database functions, checks every row, splits them
+into pages of at most 500 rows (enrolments first, then sessions, then totals), signs each page with
+HMAC-SHA256 and posts them one at a time, retrying only on receiver faults.
+
+```bash
+cp sync/.env.example sync/.env      # then fill it in
+node --env-file=sync/.env sync/send-attendance.mjs --out ./out   # build pages, post nothing
+node --env-file=sync/.env sync/send-attendance.mjs               # dry run against the endpoint
+node --env-file=sync/.env sync/send-attendance.mjs --live        # send for real
+```
+
+Batches are `dry_run: true` unless you pass `--live` (or set `DRY_RUN=false`), so the receiver checks
+them and writes nothing.
+
+Run it nightly after the day's marking is done, e.g. at 03:00 with cron:
+
+```
+0 3 * * * cd /srv/incattendance && node --env-file=sync/.env sync/send-attendance.mjs --live >> /var/log/iimpresent-sync.log 2>&1
+```
+
+On Windows, use Task Scheduler with the same command. The job exits with code 1 and an explanation if
+anything goes wrong, so a failed run is visible to whatever runs it.
+
+**Before the first live run, the office must provide:**
+
+| Needed | Why |
+|---|---|
+| Every student's institute email | The contract identifies students by email; our reg. numbers can't be sent on their own. Link them on the Access page. Students without an email are skipped and reported in the run summary. |
+| Course codes (optional) | `courses.code`, e.g. `PGP2-MKT-401`. Until set, the course title is sent as `course_code` and IIMPresent maps it by hand. |
+| The endpoint and shared secret | From the IIMPresent maintainer, out of band. They go in `sync/.env`, never in this repository. |
+
+**What our records can't express yet** (these are limits of the attendance system, not of the job):
+
+- Only `present` and `absent`. There is no excused / medical / duty leave, so every session is sent with
+  `counts: true` and `excused: 0`.
+- No `not_held` (cancelled classes) and no `unmarked`: a class nobody marked produces no rows at all, so
+  IIMPresent will see fewer sittings than its timetable predicts and report a schedule disagreement.
+- No `rescheduled` flag, and a class moved to an unusual hour can't be stored at its real time: our
+  database accepts only the six printed slots. `session_no` is sent, which is what IIMPresent uses to
+  pair sessions exactly.
+- `as_of` is the latest date that has any saved lecture. We have no "the day's marking is finished" flag,
+  so a day that is still being marked will look finished.
+- `standing` is `ok` or `short` against the course's limit; we never produce `watch`.
+
 ## Changing the student list or courses
 
 The student list and timetable live in `index.html` (`ROSTER_TEXT`, `COURSES`, `WEEKLY`,
