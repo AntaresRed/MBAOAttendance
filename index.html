@@ -146,6 +146,10 @@
   .stats { padding: 0; }
   .stat { padding: 16px 20px; min-width: 0; }
   .stat span { display: block; font-size: 13px; color: var(--ink-2); }
+  button.stat { position: relative; font: inherit; text-align: left; width: 100%; border: 0; background: none; cursor: pointer; border-radius: var(--radius); }
+  button.stat:hover { background: var(--surface-2); }
+  .stat-link { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .stat-link .svg { width: 14px; height: 14px; }
   .stat b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -.5px; line-height: 1.3; font-variant-numeric: tabular-nums; }
 
   .seg-tabs { display: flex; gap: 8px 20px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
@@ -216,6 +220,12 @@
   .modal-head h3 { margin: 0; font-size: 16px; line-height: 1.35; }
   .modal-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
   .modal-body { overflow: auto; }
+  .lecture-facts { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--line); display: grid; gap: 10px 24px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .lecture-facts > div { min-width: 0; }
+  .lecture-facts dt { font-size: 12px; color: var(--muted); }
+  .lecture-facts dd { margin: 2px 0 0; font-size: 13.5px; }
+  .modal-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .modal-tools input[type=search] { flex: 1 1 180px; height: 34px; }
   .modal-body td { padding-top: 8px; padding-bottom: 8px; }
   .modal-body th { position: sticky; top: 0; z-index: 1; }
   .modal-foot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
@@ -347,7 +357,10 @@
     <div class="filters-meta" id="filters-meta" hidden><button class="link" id="btn-reset-filters" type="button">Clear all filters</button></div>
 
     <div class="card stats">
-      <div class="stat"><span>Students near attendance limit</span><b id="k-low">0</b></div>
+      <button class="stat" id="stat-below" type="button">
+        <span>Students below attendance limit</span><b id="k-low">0</b>
+        <span class="stat-link">See who <i data-icon="chevronRight"></i></span>
+      </button>
     </div>
 
     <div class="card flush">
@@ -1365,14 +1378,13 @@ function renderDash({ keepPage = false } = {}) {
       ? `<div class="empty">${records.length ? "No lectures match these filters." : "No lectures saved yet."}</div>`
       : !matching.length ? `<div class="empty">No lectures match your search.</div>`
       : `<div class="table-wrap"><table class="lect"><thead><tr><th>Date</th><th>Course</th><th>Hall</th><th class="num c-present">Present</th><th class="num">Attendance</th><th><span hidden>Actions</span></th></tr></thead><tbody>` +
-        rows.map(r => `<tr>
+        rows.map(r => `<tr class="clickable" data-lecture="${r.id}" tabindex="0" title="View lecture details">
           <td class="c-when nowrap"><div class="two"><b>${fmtDate(r.date)}</b><small>${r.slot ? slotLabel(r) : "No time"}</small></div></td>
           <td class="c-course"><div class="two"><b>${esc(r.subject)}</b><small>${esc(r.prof)}</small></div></td>
           <td class="c-hall sub">${esc(r.hall)}</td>
           <td class="c-present num">${r.roster.length - r.absent.length}<span class="sub"> / ${r.roster.length}</span></td>
           <td class="c-pct num">${pctCellHTML(lecturePct(r))}</td>
           <td class="acts"><div>
-            <button class="icon-btn" data-act="view" data-id="${r.id}" title="View absentees" aria-label="View absentees">${ic("eye")}</button>
             <button class="icon-btn" data-act="xlsx" data-id="${r.id}" title="Download Excel" aria-label="Download Excel">${ic("download")}</button>
             ${canDelete(r) ? `<button class="icon-btn danger" data-act="del" data-id="${r.id}" title="Delete" aria-label="Delete">${ic("trash")}</button>` : ""}
           </div></td></tr>`).join("") + `</tbody></table></div>` + pager;
@@ -1439,32 +1451,71 @@ function showStudent(reg) {
   bg.querySelector(".modal-foot .btn").focus();
 }
 
-function showAbsentees(rec) {
+function showLecture(rec) {
+  const present = rec.roster.length - rec.absent.length, absent = new Set(rec.absent);
+  const saved = rec.createdAt
+    ? `Saved ${fmtDate(rec.createdAt.slice(0, 10))}${rec.createdBy ? " by " + esc(rec.createdBy) : ""}`
+    : "";
+  const studentRow = reg => `<tr class="${absent.has(reg) ? "below-row" : ""}" data-absent="${absent.has(reg)}">
+      <td class="sub nowrap">${reg}</td><td class="c-name">${esc(BY_REG.get(reg)?.name ?? "")}</td>
+      <td class="num"><span class="status ${absent.has(reg) ? "bad" : "ok"}">${absent.has(reg) ? "Absent" : "Present"}</span></td></tr>`;
+
   const bg = document.createElement("div"); bg.className = "modal-bg";
-  bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
+  bg.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="${esc(rec.subject)}">
     <div class="modal-head">
       <div style="flex:1;min-width:0">
         <h3>${esc(rec.subject)}</h3>
-        <p>${fmtDate(rec.date)}${rec.slot ? ", " + slotLabel(rec) : ""} · ${esc(rec.prof)} · ${esc(rec.hall)}</p>
-        <p><span class="t-ok">${rec.roster.length - rec.absent.length} present</span> · <span class="t-bad">${rec.absent.length} absent</span></p>
+        <p>${fmtDate(rec.date)}${rec.slot ? " · " + slotLabel(rec) : ""}</p>
       </div>
-      <button class="icon-btn" data-close title="Close">${ic("x")}</button>
+      <button class="icon-btn" data-close title="Close" aria-label="Close">${ic("x")}</button>
+    </div>
+    <dl class="lecture-facts">
+      <div><dt>Professor</dt><dd>${esc(rec.prof)}</dd></div>
+      <div><dt>Lecture hall</dt><dd>${esc(rec.hall)}</dd></div>
+      <div><dt>Attendance</dt><dd><span class="pct ${lecturePct(rec) < LOW_THRESHOLD ? "t-bad" : ""}">${lecturePct(rec)}%</span>
+        <span class="sub">· <span class="t-ok">${present} present</span>, <span class="t-bad">${rec.absent.length} absent</span>, ${rec.roster.length} on the class list</span></dd></div>
+      ${saved ? `<div><dt>Record</dt><dd class="sub">${saved}</dd></div>` : ""}
+    </dl>
+    <div class="modal-tools">
+      <div class="seg" id="lecture-filter">
+        <button type="button" data-lf="all" class="active">All <span class="n">${rec.roster.length}</span></button>
+        <button type="button" data-lf="absent">Absent <span class="n">${rec.absent.length}</span></button>
+      </div>
+      <input type="search" id="lecture-search" placeholder="Search students" aria-label="Search students">
     </div>
     <div class="modal-body">
-      ${rec.absent.length
-        ? `<table><tbody>${rec.absent.map(r => `<tr><td class="sub">${r}</td><td>${esc(BY_REG.get(r)?.name ?? "")}</td></tr>`).join("")}</tbody></table>`
-        : `<div class="empty">Everyone was present.</div>`}
+      <table><thead><tr><th>Reg. No.</th><th>Name</th><th class="num">Status</th></tr></thead>
+      <tbody id="lecture-rows">${rec.roster.map(studentRow).join("")}</tbody></table>
+      <div class="empty" id="lecture-none" hidden>No students match.</div>
     </div>
     <div class="modal-foot">
       <button class="btn" data-close>Close</button>
-      <button class="btn primary" data-dl>Download Excel</button>
+      <button class="btn primary" data-dl>${ic("download")}Download Excel</button>
     </div></div>`;
+
+  const applyFilter = () => {
+    const onlyAbsent = bg.querySelector("#lecture-filter .active").dataset.lf === "absent";
+    const words = queryWords(bg.querySelector("#lecture-search").value);
+    let shown = 0;
+    bg.querySelectorAll("#lecture-rows tr").forEach(tr => {
+      const hide = (onlyAbsent && tr.dataset.absent !== "true") || !matchesWords(tr.textContent, words);
+      tr.hidden = hide;
+      if (!hide) shown++;
+    });
+    bg.querySelector("#lecture-none").hidden = shown > 0;
+  };
   const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
   const onKey = e => { if (e.key === "Escape") close(); };
   bg.addEventListener("click", e => {
-    if (e.target === bg || e.target.closest("[data-close]")) close();
-    if (e.target.closest("[data-dl]")) downloadLectureExcel(rec);
+    if (e.target === bg || e.target.closest("[data-close]")) return close();
+    if (e.target.closest("[data-dl]")) return downloadLectureExcel(rec);
+    const b = e.target.closest("[data-lf]");
+    if (b) {
+      bg.querySelectorAll("[data-lf]").forEach(x => x.classList.toggle("active", x === b));
+      applyFilter();
+    }
   });
+  bg.addEventListener("input", e => { if (e.target.id === "lecture-search") applyFilter(); });
   document.addEventListener("keydown", onKey);
   document.body.appendChild(bg);
 }
@@ -1483,6 +1534,14 @@ $("sub-students").addEventListener("click", e => {
   if (studentPager(e)) return;
   const row = e.target.closest("tr[data-reg]"); if (row) showStudent(row.dataset.reg);
 });
+$("sub-lectures").addEventListener("keydown", e => {
+  const row = e.target.closest("tr[data-lecture]");
+  if (row && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    const rec = records.find(r => r.id === row.dataset.lecture);
+    if (rec) showLecture(rec);
+  }
+});
 $("sub-students").addEventListener("keydown", e => {
   const row = e.target.closest("tr[data-reg]");
   if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showStudent(row.dataset.reg); }
@@ -1490,9 +1549,14 @@ $("sub-students").addEventListener("keydown", e => {
 const lecturePager = onPagerClick("lectures");
 $("sub-lectures").addEventListener("click", async e => {
   if (lecturePager(e)) return;
-  const b = e.target.closest("[data-act]"); if (!b) return;
+  const b = e.target.closest("[data-act]");
+  if (!b) {
+    const row = e.target.closest("tr[data-lecture]");
+    const rec = row && records.find(r => r.id === row.dataset.lecture);
+    if (rec) showLecture(rec);
+    return;
+  }
   const rec = records.find(r => r.id === b.dataset.id); if (!rec) return;
-  if (b.dataset.act === "view") showAbsentees(rec);
   if (b.dataset.act === "xlsx") await downloadLectureExcel(rec);
   if (b.dataset.act === "del" && confirm(`Delete ${rec.subject} on ${fmtDate(rec.date)} (${rec.hall})? This cannot be undone.`)) {
     try { await store.remove(rec.id); } catch (err) { alert("Couldn't delete the lecture: " + errText(err)); return; }
@@ -1512,6 +1576,15 @@ $("subtabs").addEventListener("click", e => {
   renderDash();
 });
 $("btn-export-all").addEventListener("click", () => downloadCombinedExcel(filteredRecords()));
+
+// The count is a shortcut: it opens the student list, already filtered to those below their limit.
+$("stat-below").addEventListener("click", () => {
+  $("only-low").checked = true;
+  subTab = "students";
+  $("subtabs").querySelectorAll("[data-sub]").forEach(x => x.classList.toggle("active", x.dataset.sub === "students"));
+  renderDash();
+  $("sub-students").closest(".card").scrollIntoView({ block: "start" });
+});
 
 /* Sample data for testing: every class held from term start until now, with mock enrollments and absences.
    - Enrollment: each student takes MOCK_CREDITS_MIN to MOCK_CREDITS_MAX credits, one section per course
@@ -1700,8 +1773,9 @@ function applyAccess() {
   $("store-note").textContent = ONLINE ? "Records are stored in the online database." : "Records are stored in this browser.";
   $("user-box").hidden = !ONLINE;
   if (ONLINE) {
-    $("user-email").textContent = access.email;
+    $("user-email").textContent = access.email || "Prototype mode · no sign-in";
     $("user-role").textContent = ROLE_LABELS[access.role] || access.role;
+    $("btn-signout").hidden = !access.email;   // nothing to sign out of in prototype mode
   }
   showTab(tabs[0]);
 }
@@ -1798,13 +1872,26 @@ async function boot() {
   showGate("loading");
   const fail = msg => { $("loading-text").textContent = msg; showGate("loading"); };
   if (!sb) return fail("Couldn't load the sign-in library. Check the internet connection and reload.");
-  const { data: { session } } = await sb.auth.getSession();
+  let { data: { session } } = await sb.auth.getSession();
+  if (!session && CFG.prototypeNoLogin) {
+    // Prototype mode: no sign-in screen. Sign in silently; the database decides the role.
+    const { data, error } = await sb.auth.signInAnonymously();
+    if (error) return fail("Couldn't start prototype mode: " + errText(error) +
+      ". Turn on Anonymous sign-ins in Supabase (Authentication → Sign In / Providers).");
+    session = data.session;
+  }
   if (!session) return showGate("signin");
 
   const { data, error } = await sb.rpc("my_access");
   if (error) return fail("Couldn't check your access: " + errText(error));
   access = data;
-  if (!access.role) { $("noaccess-email").textContent = access.email; $("user-box").hidden = true; return showGate("noaccess"); }
+  if (!access.role) {
+    $("noaccess-email").textContent = access.email || "a visitor with no sign-in";
+    $("user-box").hidden = true;
+    if (CFG.prototypeNoLogin) $("noaccess-email").insertAdjacentHTML("afterend",
+      `<br><span class="sub">Prototype mode is on in config.js, but the database hasn't been opened for it. Run: update public.app_settings set open_prototype = true;</span>`);
+    return showGate("noaccess");
+  }
   try { records = await store.list(); } catch (e) { return fail("Couldn't load attendance: " + errText(e)); }
   showGate(null);
   applyAccess();
