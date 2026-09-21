@@ -2,7 +2,12 @@
 
 Lecture attendance portal for the MBA programme. Staff enter only the absent students; everyone else is
 marked present, and each lecture can be downloaded as an Excel sheet. The dashboard tracks every student
-against their courses' attendance limits (80% for 3-credit courses, 75% for 1.5-credit courses).
+against their courses' attendance limits, counted in classes missed:
+
+| Course | Within the limit | On the limit | Below the limit |
+|---|---|---|---|
+| 3 credits (20 classes) | 0–4 missed | exactly 5 | 6 or more |
+| 1.5 credits (10 classes) | 0–1 missed | exactly 2 | 3 or more |
 
 ## What's in this repository
 
@@ -111,7 +116,7 @@ only these views (sample data excluded):
 
 | View | Contents |
 |---|---|
-| `reporting.student_course_attendance` | Per student and course: classes held, attended, %, limit, below limit |
+| `reporting.student_course_attendance` | Per student and course: classes held, attended, missed, %, below limit, standing (`within` / `on_limit` / `below`) |
 | `reporting.lecture_attendance` | Every lecture with each student's present/absent |
 | `reporting.students` | Reg. no., name, batch |
 | `reporting.courses` | Course, credits, minimum attendance, hall |
@@ -173,7 +178,8 @@ anything goes wrong, so a failed run is visible to whatever runs it.
   pair sessions exactly.
 - `as_of` is the latest date that has any saved lecture. We have no "the day's marking is finished" flag,
   so a day that is still being marked will look finished.
-- `standing` is `ok` or `short` against the course's limit; we never produce `watch`.
+- `standing` follows the missed-class rule above: within the limit is `ok`, on the limit is `watch`, below
+  the limit is `short`.
 
 ## Changing the student list or courses
 

@@ -29,6 +29,8 @@
   .topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40; }
   .topbar-in { max-width: 1080px; margin: 0 auto; padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 16px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .brand-logo { height: 44px; width: auto; max-width: 160px; display: block; object-fit: contain; }
+  .brand-logo:not([hidden]) + .logo + .name { padding-left: 12px; border-left: 1px solid var(--line); }
   .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; flex: none; }
   .tabs { display: flex; gap: 4px; margin-left: auto; height: 100%; }
   .tabs button { border: 0; background: none; padding: 0 12px; cursor: pointer; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; border-top: 2px solid transparent; white-space: nowrap; }
@@ -123,6 +125,14 @@
   .chip button .svg { width: 12px; height: 12px; }
   .chip.warn { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); padding-right: 10px; }
   .chip.warn b { color: var(--warn); }
+  .suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+  .suggest-label { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+  .sug { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 10px 4px 7px; border-radius: 6px; border: 1px solid #c9ccfb; background: var(--accent-soft); font-size: 12.5px; line-height: 1.4; cursor: pointer; text-align: left; }
+  .sug:hover, .sug:focus-visible { background: #e0e3fd; border-color: var(--accent); }
+  .sug b { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sug .svg { width: 13px; height: 13px; color: var(--accent); }
+  .sug mark { background: #fef08a; color: inherit; border-radius: 2px; }
+  .suggest-none { font-size: 12.5px; color: var(--muted); }
   .roster-toggle { margin-top: 14px; }
   .roster { margin-top: 10px; }
   .roster input { margin-bottom: 8px; }
@@ -135,15 +145,17 @@
   .roster-row.abs code { color: var(--bad); }
 
   .actionbar { position: sticky; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 10px 10px 20px; box-shadow: 0 8px 28px -12px rgba(0,0,0,.18); }
-  .counts { display: flex; gap: 16px; flex: 1; min-width: 0; color: var(--ink-2); font-size: 13.5px; white-space: nowrap; }
+  .counts { display: flex; align-items: baseline; gap: 16px; flex: 1; min-width: 0; color: var(--ink-2); font-size: 13.5px; white-space: nowrap; }
   .counts b { font-size: 16px; font-variant-numeric: tabular-nums; }
-  .t-ok { color: var(--ok); } .t-bad { color: var(--bad); } .t-muted { color: var(--muted); }
+  .t-ok { color: var(--ok); } .t-bad { color: var(--bad); } .t-warn { color: var(--warn); } .t-muted { color: var(--muted); }
   .actionbar .actions { display: flex; gap: 8px; }
 
   /* ---------- Dashboard ---------- */
   .filters { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 170px)); gap: 8px; margin-bottom: 16px; }
   .filters-meta { display: flex; justify-content: flex-end; margin: -8px 0 10px; }
-  .stats { padding: 0; }
+  .stats { padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats .stat + .stat { border-left: 1px solid var(--line); border-radius: 0 var(--radius) var(--radius) 0; }
+  .stats .stat:first-child { border-radius: var(--radius) 0 0 var(--radius); }
   .stat { padding: 16px 20px; min-width: 0; }
   .stat span { display: block; font-size: 13px; color: var(--ink-2); }
   button.stat { position: relative; font: inherit; text-align: left; width: 100%; border: 0; background: none; cursor: pointer; border-radius: var(--radius); }
@@ -184,6 +196,14 @@
   .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
   .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .status.ok { color: var(--ok); }
+  .status.warn { color: var(--warn); font-weight: 600; }
+  tr.limit-row { background: var(--warn-soft); }
+  tr.limit-row:hover { background: #fdf5cf; }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg button { border: 0; background: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+  .seg .n { font-size: 11.5px; font-weight: 500; color: var(--muted); }
   .status.bad { color: var(--bad); font-weight: 600; }
   .modal.wide { max-width: 640px; }
   tr.below-row { background: var(--bad-soft); }
@@ -256,6 +276,7 @@
     h1 { font-size: 21px; margin-bottom: 16px; }
     .topbar-in { padding: 0 12px; gap: 8px; }
     .brand .name { display: none; }
+    .brand-logo { height: 36px; }
     .user .who, .user .role-pill { display: none; }
     .tabs button { padding: 0 10px; }
     .card { padding: 16px; }
@@ -270,6 +291,7 @@
     .stat { padding: 12px; }
     .stat span { font-size: 12px; line-height: 1.3; }
     .stat b { font-size: 20px; margin-top: 2px; }
+    .stat-link { position: static; transform: none; margin-top: 6px; }
     .seg-tabs { padding: 0 12px; }
     .seg-tabs .tools { margin-left: 0; width: 100%; padding-top: 0; padding-bottom: 12px; }
     .seg-tabs .tools input[type=search] { flex: 1; width: auto; }
@@ -286,7 +308,11 @@
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <div class="brand"><span class="logo"><i data-icon="logo"></i></span><span class="name">IncAttendance</span></div>
+    <div class="brand">
+      <img class="brand-logo" id="brand-logo" alt="IIM Calcutta" hidden>
+      <span class="logo" id="app-logo"><i data-icon="logo"></i></span>
+      <span class="name">IncAttendance</span>
+    </div>
     <nav class="tabs">
       <button data-tab="take" class="active">Take attendance</button>
       <button data-tab="dash">Dashboard</button>
@@ -320,7 +346,8 @@
         <label for="f-absent">Absent students</label>
         <button class="link muted" id="btn-clear" type="button" hidden>Clear</button>
       </div>
-      <textarea id="f-absent" spellcheck="false" placeholder="Enter reg. numbers of absent students, e.g. 0003/62, 171/62, 335/63"></textarea>
+      <textarea id="f-absent" spellcheck="false" placeholder="Type reg. numbers or names of absent students, e.g. 0003/62, 171/62, anuj"></textarea>
+      <div class="suggest" id="absent-suggest" hidden></div>
       <div class="chips" id="absent-chips"></div>
       <div class="roster-toggle"><button class="link" id="btn-roster" type="button">Pick from student list</button></div>
       <div class="roster" id="roster" hidden>
@@ -331,9 +358,8 @@
 
     <div class="actionbar">
       <div class="counts">
-        <span><b class="t-ok" id="s-present">0</b> present</span>
+        <span>Attended <b class="t-ok" id="s-present">0</b> out of <span id="s-total">0</span></span>
         <span><b class="t-bad" id="s-absent">0</b> absent</span>
-        <span class="t-muted">of <span id="s-total">0</span></span>
       </div>
       <div class="actions">
         <button class="btn" id="btn-download" type="button"><i data-icon="download"></i>Download Excel</button>
@@ -357,8 +383,12 @@
     <div class="filters-meta" id="filters-meta" hidden><button class="link" id="btn-reset-filters" type="button">Clear all filters</button></div>
 
     <div class="card stats">
-      <button class="stat" id="stat-below" type="button">
+      <button class="stat" data-standing="below" type="button">
         <span>Students below attendance limit</span><b id="k-low">0</b>
+        <span class="stat-link">See who <i data-icon="chevronRight"></i></span>
+      </button>
+      <button class="stat" data-standing="limit" type="button">
+        <span>Students on the limit</span><b id="k-limit">0</b>
         <span class="stat-link">See who <i data-icon="chevronRight"></i></span>
       </button>
     </div>
@@ -369,7 +399,11 @@
         <button type="button" data-sub="students">Students</button>
         <div class="tools">
           <input type="search" id="table-search" placeholder="Search lectures" aria-label="Search table">
-          <label class="check" id="only-low-wrap" hidden><input type="checkbox" id="only-low"> Below limit only</label>
+          <div class="seg" id="standing-filter" hidden>
+            <button type="button" data-sf="all" class="active">All</button>
+            <button type="button" data-sf="below">Below limit</button>
+            <button type="button" data-sf="limit">On the limit</button>
+          </div>
         </div>
       </div>
       <div id="sub-lectures" class="table-wrap"></div>
@@ -1007,7 +1041,7 @@ function parseAbsent(text) {
     if (found.length === 1) {
       if (!seen.has(found[0])) { seen.add(found[0]); matched.push(found[0]); }
     } else {
-      problems.push({ tok, reason: found.length > 1 ? `ambiguous: ${found.join(" or ")}` : "not in roster" });
+      problems.push({ tok, reason: found.length > 1 ? `ambiguous: ${found.join(" or ")}` : /\d/.test(tok) ? "not in roster" : "not a reg. no." });
     }
   }
   return { matched, problems };
@@ -1021,6 +1055,7 @@ const ICONS = {
   trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
   x: '<path d="M18 6L6 18M6 6l12 12"/>',
   check: '<path d="M20 6L9 17l-5-5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
   chevronRight: '<path d="M9 6l6 6-6 6"/>'
 };
@@ -1088,9 +1123,82 @@ $("f-subject").addEventListener("input", onCourseChange);
 
 let current = { matched: [], problems: [] };
 
+/* What is being typed at the end of the absentee box: part of a reg. no. (the last word, if it has a
+   digit) or a name (the run of words without digits at the end). Returns its position so a picked
+   suggestion can replace it. */
+function activeQuery() {
+  const value = $("f-absent").value;
+  const head = value.replace(/\s+$/, "");
+  const segStart = Math.max(head.lastIndexOf(","), head.lastIndexOf(";"), head.lastIndexOf("\n")) + 1;
+  const tokens = [...head.slice(segStart).matchAll(/\S+/g)];
+  if (!tokens.length) return null;
+  let first = tokens.length - 1;
+  const isName = !/\d/.test(tokens[first][0]);
+  if (isName) while (first > 0 && !/\d/.test(tokens[first - 1][0])) first--;
+  const start = segStart + tokens[first].index;
+  const text = head.slice(start);
+  return { start, text, isName, words: queryWords(text), tokens: tokens.slice(first).map(t => t[0]) };
+}
+
+// A finished reg. no. like 0003/62 needs no suggestion.
+const isCompleteReg = q => !q.isName && q.tokens.length === 1 && q.text.includes("/") && !parseAbsent(q.text).problems.length;
+
+let suggestions = [];
+
+// Best matches first: a reg. no. that starts with what was typed, then names whose words start with
+// each typed word ("anu kap"), then everything else that merely contains it.
+function suggestionRank(st, words) {
+  const reg = st.reg.toLowerCase(), parts = st.name.toLowerCase().split(/\s+/);
+  if (words.length === 1 && (reg.startsWith(words[0]) || reg.replace(/^0+/, "").startsWith(words[0]))) return 0;
+  if (words.every(w => parts.some(p => p.startsWith(w)))) return 1;
+  return 2;
+}
+
+function highlightWords(text, words) {
+  const lower = text.toLowerCase(), marked = new Array(text.length).fill(false);
+  for (const w of words) for (let i = lower.indexOf(w); i !== -1; i = lower.indexOf(w, i + w.length)) marked.fill(true, i, i + w.length);
+  let html = "", on = false;
+  for (let i = 0; i < text.length; i++) {
+    if (marked[i] !== on) { html += on ? "</mark>" : "<mark>"; on = marked[i]; }
+    html += esc(text[i]);
+  }
+  return html + (on ? "</mark>" : "");
+}
+
+function renderSuggestions(q, absentSet) {
+  const box = $("absent-suggest");
+  const active = q && q.text.replace(/\s/g, "").length >= 2 && !isCompleteReg(q);
+  suggestions = active
+    ? STUDENTS.filter(st => !absentSet.has(st.reg) && matchesWords(`${st.reg} ${st.name}`, q.words))
+        .map((st, i) => ({ st, i, rank: suggestionRank(st, q.words) }))
+        .sort((a, b) => a.rank - b.rank || a.i - b.i)
+        .slice(0, 8).map(x => x.st)
+    : [];
+  box.hidden = !active;
+  if (!active) return;
+  box.innerHTML = suggestions.length
+    ? `<span class="suggest-label">Add:</span>` + suggestions.map(st =>
+        `<button type="button" class="sug" data-add="${st.reg}" title="Mark ${esc(st.name)} absent">${ic("plus")}<b>${highlightWords(st.reg, q.words)}</b><span>${highlightWords(st.name, q.words)}</span></button>`).join("")
+    : `<span class="suggest-none">No student matches “${esc(q.text)}”</span>`;
+}
+
+// Replace what's being typed with the picked reg. no., ready for the next one.
+function addSuggestion(reg) {
+  const ta = $("f-absent"), q = activeQuery();
+  const before = (q ? ta.value.slice(0, q.start) : ta.value).replace(/[\s,;]+$/, "");
+  ta.value = (before ? before + ", " : "") + reg + ", ";
+  renderTake();
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
 function renderTake() {
   current = parseAbsent($("f-absent").value);
   const absentSet = new Set(current.matched);
+  const q = activeQuery();
+  renderSuggestions(q, absentSet);
+  // Don't flag what's still being typed while there are suggestions for it.
+  const typing = new Set(q && suggestions.length ? q.tokens : []);
   $("s-total").textContent = STUDENTS.length;
   $("s-absent").textContent = absentSet.size;
   $("s-present").textContent = STUDENTS.length - absentSet.size;
@@ -1098,7 +1206,7 @@ function renderTake() {
 
   $("absent-chips").innerHTML =
     current.matched.map(r => `<span class="chip"><b>${esc(r)}</b>${esc(BY_REG.get(r).name)}<button type="button" data-remove="${esc(r)}" aria-label="Remove">${ic("x")}</button></span>`).join("") +
-    current.problems.map(p => `<span class="chip warn"><b>${esc(p.tok)}</b>${esc(p.reason)}</span>`).join("");
+    current.problems.filter(p => !typing.has(p.tok)).map(p => `<span class="chip warn"><b>${esc(p.tok)}</b>${esc(p.reason)}</span>`).join("");
 
   if ($("roster").hidden) return;
   const words = queryWords($("picker-search").value);
@@ -1115,6 +1223,13 @@ function toggleAbsent(reg) {
 }
 
 $("f-absent").addEventListener("input", renderTake);
+$("absent-suggest").addEventListener("click", e => { const b = e.target.closest("[data-add]"); if (b) addSuggestion(b.dataset.add); });
+// Enter picks the suggestion when a typed name matches exactly one student.
+$("f-absent").addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.shiftKey) return;
+  const q = activeQuery();
+  if (q?.isName && suggestions.length === 1) { e.preventDefault(); addSuggestion(suggestions[0].reg); }
+});
 $("picker-search").addEventListener("input", renderTake);
 $("picker").addEventListener("click", e => { const d = e.target.closest("[data-reg]"); if (d) toggleAbsent(d.dataset.reg); });
 $("absent-chips").addEventListener("click", e => { const b = e.target.closest("[data-remove]"); if (b) toggleAbsent(b.dataset.remove); });
@@ -1166,7 +1281,7 @@ $("btn-save").addEventListener("click", async () => {
   $("f-absent").value = "";
   renderTake();
   renderDash();
-  toast(`Saved: ${rec.roster.length - rec.absent.length} present, ${rec.absent.length} absent`);
+  toast(`Saved: attended ${rec.roster.length - rec.absent.length} out of ${rec.roster.length}, ${rec.absent.length} absent`);
 });
 
 /* ---------------- Excel ---------------- */
@@ -1309,11 +1424,17 @@ function studentStats(recs) {
   });
 }
 
-/* Minimum attendance: 80% for 3-credit courses, 75% for 1.5-credit courses. */
-const attendanceLimit = course => COURSES[course]?.credits === 1.5 ? 75 : 80;
+/* Attendance standing is set by classes missed. A 3-credit course (20 classes) allows 4 misses: missing 5
+   puts a student on the limit, 6 or more below it. A 1.5-credit course (10 classes) allows 1: missing 2 is
+   on the limit, 3 or more is below it. */
+const onLimitMisses = course => COURSES[course]?.credits === 1.5 ? 2 : 5;
+function courseStanding(course, missed) {
+  const limit = onLimitMisses(course);
+  return missed > limit ? "below" : missed === limit ? "limit" : "ok";
+}
 
-/* For each student, their attendance in every course, and the course where they are closest to
-   (or furthest below) that course's limit. */
+/* For each student: attendance in every course they've had classes in, and their overall standing
+   (below the limit in any course, else on the limit in any course, else within). */
 function studentCourseStats(recs) {
   const byReg = new Map(STUDENTS.map(s => [s.reg, new Map()]));
   for (const r of recs) {
@@ -1326,16 +1447,20 @@ function studentCourseStats(recs) {
     }
   }
   return STUDENTS.map(s => {
-    const courses = [...byReg.get(s.reg)].map(([course, c]) => {
-      const p = pct(c.total - c.absent, c.total), limit = attendanceLimit(course);
-      return { course, limit, total: c.total, attended: c.total - c.absent, pct: p, margin: p - limit };
-    }).sort((a, b) => a.course.localeCompare(b.course));
-    return { ...s, courses, belowCount: courses.filter(c => c.margin < 0).length };
+    const courses = [...byReg.get(s.reg)].map(([course, c]) => ({
+      course, total: c.total, attended: c.total - c.absent, missed: c.absent,
+      pct: pct(c.total - c.absent, c.total), onLimit: onLimitMisses(course), standing: courseStanding(course, c.absent)
+    })).sort((a, b) => a.course.localeCompare(b.course));
+    const belowCount = courses.filter(c => c.standing === "below").length;
+    const limitCount = courses.filter(c => c.standing === "limit").length;
+    return { ...s, courses, belowCount, limitCount, standing: belowCount ? "below" : limitCount ? "limit" : "ok" };
   });
 }
 
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const studentStatus = s => !s.courses.length ? `<span class="sub">No lectures</span>`
-  : s.belowCount ? `<span class="status bad">Below limit in ${s.belowCount} course${s.belowCount > 1 ? "s" : ""}</span>`
+  : s.belowCount ? `<span class="status bad">Below limit in ${plural(s.belowCount, "course")}</span>`
+  : s.limitCount ? `<span class="status warn">On the limit in ${plural(s.limitCount, "course")}</span>`
   : `<span class="status ok">Within limit</span>`;
 
 /* Reg. no. order: batch (the /62 part) first, then the serial number. */
@@ -1364,7 +1489,8 @@ function renderDash({ keepPage = false } = {}) {
   const words = queryWords($("table-search").value);
   const stats = studentCourseStats(recs);
 
-  $("k-low").textContent = stats.filter(s => s.belowCount).length;
+  $("k-low").textContent = stats.filter(s => s.standing === "below").length;
+  $("k-limit").textContent = stats.filter(s => s.standing === "limit").length;
   $("btn-export-all").disabled = !recs.length;
   $("filters-meta").hidden = FILTER_IDS.every(id => !$(id).value);
   $("btn-mock-clear").hidden = !(canUseSamples() && records.some(r => r.mock));
@@ -1377,27 +1503,28 @@ function renderDash({ keepPage = false } = {}) {
     $("sub-lectures").innerHTML = !recs.length
       ? `<div class="empty">${records.length ? "No lectures match these filters." : "No lectures saved yet."}</div>`
       : !matching.length ? `<div class="empty">No lectures match your search.</div>`
-      : `<div class="table-wrap"><table class="lect"><thead><tr><th>Date</th><th>Course</th><th>Hall</th><th class="num c-present">Present</th><th class="num">Attendance</th><th><span hidden>Actions</span></th></tr></thead><tbody>` +
+      : `<div class="table-wrap"><table class="lect"><thead><tr><th>Date</th><th>Course</th><th>Hall</th><th class="num c-present">Attended</th><th class="num">Attendance</th><th><span hidden>Actions</span></th></tr></thead><tbody>` +
         rows.map(r => `<tr class="clickable" data-lecture="${r.id}" tabindex="0" title="View lecture details">
           <td class="c-when nowrap"><div class="two"><b>${fmtDate(r.date)}</b><small>${r.slot ? slotLabel(r) : "No time"}</small></div></td>
           <td class="c-course"><div class="two"><b>${esc(r.subject)}</b><small>${esc(r.prof)}</small></div></td>
           <td class="c-hall sub">${esc(r.hall)}</td>
-          <td class="c-present num">${r.roster.length - r.absent.length}<span class="sub"> / ${r.roster.length}</span></td>
+          <td class="c-present num">${r.roster.length - r.absent.length}<span class="sub"> out of ${r.roster.length}</span></td>
           <td class="c-pct num">${pctCellHTML(lecturePct(r))}</td>
           <td class="acts"><div>
             <button class="icon-btn" data-act="xlsx" data-id="${r.id}" title="Download Excel" aria-label="Download Excel">${ic("download")}</button>
             ${canDelete(r) ? `<button class="icon-btn danger" data-act="del" data-id="${r.id}" title="Delete" aria-label="Delete">${ic("trash")}</button>` : ""}
           </div></td></tr>`).join("") + `</tbody></table></div>` + pager;
   } else {
-    const onlyLow = $("only-low").checked;
     const matching = stats
-      .filter(s => (!onlyLow || s.belowCount) && matchesWords(`${s.reg} ${s.name}`, words))
+      .filter(s => (standingFilter === "all" || (s.courses.length && s.standing === standingFilter)) && matchesWords(`${s.reg} ${s.name}`, words))
       .sort(byRegNo);
     const { rows, pager } = pageSlice(matching, "students");
     $("sub-students").innerHTML = !recs.length
       ? `<div class="empty">No lectures saved yet.</div>`
       : !matching.length
-        ? `<div class="empty">${onlyLow && !words.length ? "No students are below the attendance limit." : "No students match your search."}</div>`
+        ? `<div class="empty">${words.length ? "No students match your search."
+            : standingFilter === "below" ? "No students are below the attendance limit."
+            : "No students are on the limit."}</div>`
         : `<div class="table-wrap"><table><thead><tr><th>Reg. No.</th><th>Name</th><th>Status</th><th><span hidden>Details</span></th></tr></thead><tbody>` +
           rows.map(s => `<tr class="clickable" data-reg="${s.reg}" tabindex="0" title="View course-wise attendance">
               <td class="sub nowrap">${s.reg}</td><td class="c-name">${esc(s.name)}</td>
@@ -1407,7 +1534,7 @@ function renderDash({ keepPage = false } = {}) {
 
   $("sub-lectures").hidden = subTab !== "lectures";
   $("sub-students").hidden = subTab !== "students";
-  $("only-low-wrap").hidden = subTab !== "students";
+  $("standing-filter").hidden = subTab !== "students";
   $("table-search").placeholder = subTab === "students" ? "Search students" : "Search lectures";
 }
 
@@ -1415,16 +1542,17 @@ function studentSummaryHTML(s) {
   const attended = s.courses.reduce((n, c) => n + c.attended, 0), total = s.courses.reduce((n, c) => n + c.total, 0);
   return `<h3>${esc(s.name)}</h3>
     <p>${s.reg} · ${studentStatus(s)}</p>
-    ${total ? `<p>Overall: ${attended} / ${total} classes attended (${pct(attended, total)}%) across ${s.courses.length} course${s.courses.length > 1 ? "s" : ""}</p>` : ""}`;
+    ${total ? `<p>Overall: attended ${attended} out of ${total} classes (${pct(attended, total)}%) across ${s.courses.length} course${s.courses.length > 1 ? "s" : ""}</p>` : ""}`;
 }
 
 function studentCoursesHTML(s) {
   return s.courses.length
     ? `<table><thead><tr><th>Course</th><th class="num">Attended</th><th class="num">Attendance</th></tr></thead><tbody>${s.courses.map(c => `
-        <tr class="${c.margin < 0 ? "below-row" : ""}">
-          <td class="c-name"><div class="two"><b>${esc(c.course)}</b><small>${COURSES[c.course]?.credits ?? "–"} credits · minimum ${c.limit}%</small></div></td>
-          <td class="num">${c.attended}<span class="sub"> / ${c.total}</span></td>
-          <td class="num"><span class="pct ${c.margin < 0 ? "t-bad" : ""}">${c.pct}%</span></td>
+        <tr class="${c.standing === "below" ? "below-row" : c.standing === "limit" ? "limit-row" : ""}">
+          <td class="c-name"><div class="two"><b>${esc(c.course)}</b><small>${COURSES[c.course]?.credits ?? "–"} credits · ${
+            c.standing === "below" ? "below the limit" : c.standing === "limit" ? "on the limit" : "within the limit"} (limit: ${c.total - c.onLimit} out of ${c.total})</small></div></td>
+          <td class="num"><span class="${c.standing === "below" ? "t-bad pct" : c.standing === "limit" ? "t-warn pct" : ""}">${c.attended}</span><span class="sub"> out of ${c.total}</span></td>
+          <td class="num">${c.pct}%</td>
         </tr>`).join("")}</tbody></table>`
     : `<div class="empty">No lectures recorded yet.</div>`;
 }
@@ -1473,7 +1601,7 @@ function showLecture(rec) {
       <div><dt>Professor</dt><dd>${esc(rec.prof)}</dd></div>
       <div><dt>Lecture hall</dt><dd>${esc(rec.hall)}</dd></div>
       <div><dt>Attendance</dt><dd><span class="pct ${lecturePct(rec) < LOW_THRESHOLD ? "t-bad" : ""}">${lecturePct(rec)}%</span>
-        <span class="sub">· <span class="t-ok">${present} present</span>, <span class="t-bad">${rec.absent.length} absent</span>, ${rec.roster.length} on the class list</span></dd></div>
+        <span class="sub">· attended <span class="t-ok">${present} out of ${rec.roster.length}</span>, <span class="t-bad">${rec.absent.length} absent</span></span></dd></div>
       ${saved ? `<div><dt>Record</dt><dd class="sub">${saved}</dd></div>` : ""}
     </dl>
     <div class="modal-tools">
@@ -1567,7 +1695,16 @@ $("sub-lectures").addEventListener("click", async e => {
 FILTER_IDS.forEach(id => $(id).addEventListener("input", renderDash));
 $("btn-reset-filters").addEventListener("click", () => { FILTER_IDS.forEach(id => $(id).value = ""); renderDash(); });
 $("table-search").addEventListener("input", renderDash);
-$("only-low").addEventListener("change", renderDash);
+let standingFilter = "all";
+function setStandingFilter(value) {
+  standingFilter = value;
+  $("standing-filter").querySelectorAll("[data-sf]").forEach(x => x.classList.toggle("active", x.dataset.sf === value));
+}
+$("standing-filter").addEventListener("click", e => {
+  const b = e.target.closest("[data-sf]"); if (!b) return;
+  setStandingFilter(b.dataset.sf);
+  renderDash();
+});
 $("subtabs").addEventListener("click", e => {
   const b = e.target.closest("[data-sub]"); if (!b) return;
   if (subTab !== b.dataset.sub) $("table-search").value = "";
@@ -1577,41 +1714,46 @@ $("subtabs").addEventListener("click", e => {
 });
 $("btn-export-all").addEventListener("click", () => downloadCombinedExcel(filteredRecords()));
 
-// The count is a shortcut: it opens the student list, already filtered to those below their limit.
-$("stat-below").addEventListener("click", () => {
-  $("only-low").checked = true;
+// The counts are shortcuts: each opens the student list filtered to those students.
+document.querySelectorAll(".stats [data-standing]").forEach(b => b.addEventListener("click", () => {
+  setStandingFilter(b.dataset.standing);
   subTab = "students";
   $("subtabs").querySelectorAll("[data-sub]").forEach(x => x.classList.toggle("active", x.dataset.sub === "students"));
   renderDash();
   $("sub-students").closest(".card").scrollIntoView({ block: "start" });
-});
+}));
 
-/* Sample data for testing: every class held from term start until now, with mock enrollments and absences.
+/* Sample data for testing: a term that is nearly over.
+   - Classes: every 3-credit course has held MOCK_HELD_FULL classes and every 1.5-credit course MOCK_HELD_HALF:
+     the first ones in the Term-V timetable, with the whole calendar moved back by whole weeks so they all fall
+     before today. Weekdays and time slots stay as the timetable has them; the dates themselves don't.
    - Enrollment: each student takes MOCK_CREDITS_MIN to MOCK_CREDITS_MAX credits, one section per course
      (e.g. only -A or -B), and never two courses that meet at the same time. Class sizes are balanced.
-   - Absences are decided per student per course over the classes held so far, then scattered at random:
-     most students miss about MOCK_ABSENCE_RATE of classes but stay at or above each course's limit today;
-     at most MOCK_MAX_BELOW_SHARE of students struggle, each in 1 to 4 courses, ending up to 15 points under
-     that course's limit.
+   - Absences are exact counts per student per course, scattered over that course's classes:
+       MOCK_BELOW_SHARE of students are below the limit in 1 to 3 courses (6-8 missed of a 3-credit course,
+         3-4 of a 1.5-credit one),
+       MOCK_ON_LIMIT_SHARE are on the limit in 1 or 2 courses (exactly 5 or 2 missed),
+       everyone else is within the limit everywhere (at most 4 or 1 missed).
    These enrollments exist only in the sample data; real attendance still covers the full roster.
    Records are tagged mock: true so they can be removed without touching real ones. */
-const MOCK_MAX_BELOW_SHARE = 0.05;
+const MOCK_HELD_FULL = 18, MOCK_HELD_HALF = 9;
+const MOCK_BELOW_SHARE = 0.05, MOCK_ON_LIMIT_SHARE = 0.10;
 const MOCK_CREDITS_MIN = 18, MOCK_CREDITS_MAX = 21;
-const MOCK_ABSENCE_RATE = 0.05;
+// How many classes a student within the limit misses: chances of 0, 1, 2... misses.
+const MOCK_WITHIN_MISSES = { 5: [0.25, 0.30, 0.25, 0.13, 0.07], 2: [0.6, 0.4] };
 
 function generateMockRecords() {
   let seed = 20260824;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pick = n => Math.floor(rnd() * n);
+  const shuffle = list => { for (let i = list.length - 1; i > 0; i--) { const j = pick(i + 1); [list[i], list[j]] = [list[j], list[i]]; } return list; };
   const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-  // Every class of the term, and the ones that have already started (nothing later than now).
+  // Every class of the term, in time order.
   const sessions = [];
   for (const d = new Date(TERM.start + "T00:00"); isoOf(d) <= TERM.end; d.setDate(d.getDate() + 1)) {
     for (const slot of SLOTS) for (const subject of scheduledCourses(isoOf(d), slot).courses) sessions.push({ date: isoOf(d), slot, subject });
   }
-  const now = new Date(), today = todayISO();
-  const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const held = sessions.filter(x => x.date < today || (x.date === today && x.slot <= nowHM));
 
   // Which courses can't be taken together: they meet at the same date and time, or are sections of one course.
   const meets = new Map(SUBJECTS.map(c => [c, new Set()]));
@@ -1624,7 +1766,7 @@ function generateMockRecords() {
   const rosters = new Map(SUBJECTS.map(c => [c, []]));
   const coursesOf = new Map();
   for (const st of STUDENTS) {
-    const target = MOCK_CREDITS_MIN + Math.floor(rnd() * ((MOCK_CREDITS_MAX - MOCK_CREDITS_MIN) / 1.5 + 1)) * 1.5;
+    const target = MOCK_CREDITS_MIN + pick((MOCK_CREDITS_MAX - MOCK_CREDITS_MIN) / 1.5 + 1) * 1.5;
     const mine = []; let credits = 0;
     const order = SUBJECTS.map(c => ({ c, key: rosters.get(c).length + rnd() * 15 })).sort((a, b) => a.key - b.key);
     for (const { c } of order) {
@@ -1636,49 +1778,61 @@ function generateMockRecords() {
     coursesOf.set(st.reg, mine);
   }
 
-  // For each course: the classes held so far, the most absences that keep a student at or above the limit,
-  // and the most that keep a struggling student within 15 points below it.
+  // The classes held so far: the first 18 (3 credits) or 9 (1.5 credits) of each course.
+  const toHold = c => COURSES[c].credits === 1.5 ? MOCK_HELD_HALF : MOCK_HELD_FULL;
   const heldIdx = new Map(SUBJECTS.map(c => [c, []]));
+  const held = sessions.filter(x => heldIdx.get(x.subject).length < toHold(x.subject) && heldIdx.get(x.subject).push(0));
+  heldIdx.forEach(list => list.length = 0);
   held.forEach((x, i) => heldIdx.get(x.subject).push(i));
-  const maxOk = c => Math.floor(heldIdx.get(c).length * (100 - attendanceLimit(c)) / 100);
-  const maxStruggle = c => Math.floor(heldIdx.get(c).length * (115 - attendanceLimit(c)) / 100);
 
-  // Struggling students: evenly spread, each below the limit in 1 to 4 of their courses.
-  const maxBelow = Math.floor(STUDENTS.length * MOCK_MAX_BELOW_SHARE);
-  const every = Math.ceil(STUDENTS.length / Math.max(maxBelow, 1));
-  const struggling = new Map();
-  STUDENTS.forEach((st, i) => {
-    if (struggling.size >= maxBelow || i % every !== 3) return;
-    const options = coursesOf.get(st.reg).filter(c => maxStruggle(c) > maxOk(c)).sort(() => rnd() - 0.5);
-    const picked = options.slice(0, 1 + Math.floor(rnd() * 4));
-    if (picked.length) struggling.set(st.reg, new Set(picked));
-  });
+  // Move the calendar back by whole weeks until the last of those classes falls before today.
+  const yesterday = new Date(todayISO() + "T00:00"); yesterday.setDate(yesterday.getDate() - 1);
+  const weeks = Math.max(0, Math.ceil((new Date(held.at(-1).date + "T00:00") - yesterday) / (7 * 864e5)));
+  const moved = iso => { const d = new Date(iso + "T00:00"); d.setDate(d.getDate() - weeks * 7); return isoOf(d); };
 
-  // Attendance: how many classes each student misses per course, scattered at random over the classes held.
+  // Who is below the limit and who is on it: spread across the roster at random, the same every time.
+  const nBelow = Math.floor(STUDENTS.length * MOCK_BELOW_SHARE), nLimit = Math.floor(STUDENTS.length * MOCK_ON_LIMIT_SHARE);
+  const group = new Map(shuffle(STUDENTS.map(st => st.reg))
+    .map((reg, i) => [reg, i < nBelow ? "below" : i < nBelow + nLimit ? "limit" : "ok"]));
+
+  // Classes missed per student per course, then scattered over that course's classes.
+  const withinMisses = limit => {
+    let x = rnd(), k = 0;
+    for (const w of MOCK_WITHIN_MISSES[limit]) { if ((x -= w) < 0) return k; k++; }
+    return k - 1;
+  };
   const absentAt = held.map(() => []);
+  const missed = new Map();
+  for (const st of STUDENTS) {
+    const g = group.get(st.reg), mine = shuffle([...coursesOf.get(st.reg)]);
+    const special = g === "below" ? 1 + pick(3) : g === "limit" ? 1 + pick(2) : 0;
+    mine.forEach((c, i) => {
+      const limit = onLimitMisses(c);
+      const k = i >= special ? withinMisses(limit)
+        : g === "below" ? limit + 1 + pick(limit === 5 ? 3 : 2)   // 6-8 or 3-4
+        : limit;                                                // exactly 5 or 2
+      missed.set(`${st.reg}|${c}`, Math.min(k, heldIdx.get(c).length));
+    });
+  }
   for (const c of SUBJECTS) {
-    const idx = heldIdx.get(c); if (!idx.length) continue;
     for (const reg of rosters.get(c)) {
-      let k;
-      if (struggling.get(reg)?.has(c)) k = maxOk(c) + 1 + Math.floor(rnd() * (maxStruggle(c) - maxOk(c)));
-      else { k = 0; for (let j = 0; j < idx.length; j++) if (rnd() < MOCK_ABSENCE_RATE) k++; k = Math.min(k, maxOk(c)); }
-      const pool = [...idx];
+      const pool = [...heldIdx.get(c)], k = missed.get(`${reg}|${c}`) || 0;
       for (let j = 0; j < k; j++) {
-        const pick = j + Math.floor(rnd() * (pool.length - j));
-        [pool[j], pool[pick]] = [pool[pick], pool[j]];
+        const at = j + pick(pool.length - j);
+        [pool[j], pool[at]] = [pool[at], pool[j]];
         absentAt[pool[j]].push(reg);
       }
     }
   }
 
   return held.map(({ date, slot, subject }, i) => {
-    const roster = rosters.get(subject), absent = absentAt[i];
+    const day = moved(date);
     return {
-      id: `mock-${date}-${slot.replace(":", "")}-${slug(subject)}`,
-      mock: true, date, slot, subject,
+      id: `mock-${day}-${slot.replace(":", "")}-${slug(subject)}`,
+      mock: true, date: day, slot, subject,
       prof: COURSES[subject].profs.join(" / "), hall: COURSES[subject].hall,
-      absent, roster,
-      createdAt: new Date(`${date}T${slot}:00`).toISOString()
+      absent: absentAt[i], roster: rosters.get(subject),
+      createdAt: new Date(`${day}T${slot}:00`).toISOString()
     };
   });
 }
@@ -2041,6 +2195,15 @@ document.addEventListener("mousedown", e => {
   .forEach(([id, placeholder]) => enhanceSelect($(id), placeholder));
 enhanceSelect($("m-role"), "Search roles");
 enhanceSelect($("m-faculty"), "Search professors");
+
+/* Institute logo, top left: the first of these files that exists is shown; otherwise the app icon stays. */
+(function showInstituteLogo(candidates) {
+  const img = $("brand-logo"), next = candidates.shift();
+  if (!next) return;
+  img.onload = () => { img.hidden = false; $("app-logo").hidden = true; };
+  img.onerror = () => showInstituteLogo(candidates);
+  img.src = next;
+})(["assets/iimc-logo.png", "assets/iimc-logo.svg"]);
 
 boot();
 </script>
