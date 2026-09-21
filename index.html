@@ -71,6 +71,8 @@
   .date-field input:invalid:not(:focus) { color: transparent; }
   .date-field input:invalid:not(:focus)::-webkit-datetime-edit { color: transparent; }
   .date-field input:invalid:not(:focus) + .ph { display: block; }
+  .date-field input:-moz-ui-invalid:not(:focus) { box-shadow: none; }
+  .date-field input:user-invalid:not(:focus) { box-shadow: none; border-color: var(--line); }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--control-h); font-weight: 600; padding: 0 16px; border-radius: 8px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; transition: background .15s, border-color .15s; }
   .btn:hover:not(:disabled) { background: var(--surface-2); border-color: #d6d6de; }
@@ -294,7 +296,10 @@
     .stat-link { position: static; transform: none; margin-top: 6px; }
     .seg-tabs { padding: 0 12px; }
     .seg-tabs .tools { margin-left: 0; width: 100%; padding-top: 0; padding-bottom: 12px; }
-    .seg-tabs .tools input[type=search] { flex: 1; width: auto; }
+    .seg-tabs .tools { flex-wrap: wrap; }
+    .seg-tabs .tools input[type=search] { flex: 1 1 100%; width: auto; }
+    .status { white-space: normal; align-items: baseline; }
+    .status::before { flex: none; transform: translateY(-1px); }
     th:first-child, td:first-child { padding-left: 12px; }
     th:last-child, td:last-child { padding-right: 12px; }
     td.c-name { white-space: normal; }
@@ -1007,7 +1012,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDate = iso => { const [y, m, d] = iso.split("-").map(Number); return `${String(d).padStart(2, "0")} ${MONTHS[m - 1]} ${y}`; };
-const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const localISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayISO = () => localISO(new Date());
 const pct = (a, b) => b ? Math.round((a / b) * 1000) / 10 : 0;
 /* Every word of the query must appear somewhere in the text (case-insensitive). */
 const queryWords = q => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1020,6 +1026,7 @@ function fillSelect(el, items, placeholder) {
     items.map(v => `<option>${esc(v)}</option>`).join("");
 }
 function toast(msg) {
+  document.querySelectorAll(".toast").forEach(old => old.remove());
   const t = document.createElement("div"); t.className = "toast";
   t.innerHTML = `<span class="t-icon">${ic("check")}</span>`; t.append(msg);
   document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
@@ -1118,6 +1125,7 @@ function renderCourseOptions() {
 renderProfOptions("");
 renderCourseOptions();
 $("f-date").addEventListener("input", renderCourseOptions);
+$("f-date").addEventListener("change", renderCourseOptions);
 $("f-slot").addEventListener("input", renderCourseOptions);
 $("f-subject").addEventListener("input", onCourseChange);
 
@@ -1306,7 +1314,7 @@ async function saveWorkbook(wb, filename) {
 
 function excelReady() {
   if (window.ExcelJS) return true;
-  alert("The Excel library could not load (it needs an internet connection the first time). The record was still saved; download it again from the Dashboard once you're online.");
+  alert("The Excel file can't be made right now: the Excel library didn't load (it needs an internet connection). Nothing else is affected. Reload the page once you're online and try again.");
   return false;
 }
 
@@ -1504,15 +1512,15 @@ function renderDash({ keepPage = false } = {}) {
       ? `<div class="empty">${records.length ? "No lectures match these filters." : "No lectures saved yet."}</div>`
       : !matching.length ? `<div class="empty">No lectures match your search.</div>`
       : `<div class="table-wrap"><table class="lect"><thead><tr><th>Date</th><th>Course</th><th>Hall</th><th class="num c-present">Attended</th><th class="num">Attendance</th><th><span hidden>Actions</span></th></tr></thead><tbody>` +
-        rows.map(r => `<tr class="clickable" data-lecture="${r.id}" tabindex="0" title="View lecture details">
-          <td class="c-when nowrap"><div class="two"><b>${fmtDate(r.date)}</b><small>${r.slot ? slotLabel(r) : "No time"}</small></div></td>
+        rows.map(r => `<tr class="clickable" data-lecture="${esc(r.id)}" tabindex="0" title="View lecture details">
+          <td class="c-when nowrap"><div class="two"><b>${fmtDate(r.date)}</b><small>${r.slot ? esc(slotLabel(r)) : "No time"}</small></div></td>
           <td class="c-course"><div class="two"><b>${esc(r.subject)}</b><small>${esc(r.prof)}</small></div></td>
           <td class="c-hall sub">${esc(r.hall)}</td>
           <td class="c-present num">${r.roster.length - r.absent.length}<span class="sub"> out of ${r.roster.length}</span></td>
           <td class="c-pct num">${pctCellHTML(lecturePct(r))}</td>
           <td class="acts"><div>
-            <button class="icon-btn" data-act="xlsx" data-id="${r.id}" title="Download Excel" aria-label="Download Excel">${ic("download")}</button>
-            ${canDelete(r) ? `<button class="icon-btn danger" data-act="del" data-id="${r.id}" title="Delete" aria-label="Delete">${ic("trash")}</button>` : ""}
+            <button class="icon-btn" data-act="xlsx" data-id="${esc(r.id)}" title="Download Excel" aria-label="Download Excel">${ic("download")}</button>
+            ${canDelete(r) ? `<button class="icon-btn danger" data-act="del" data-id="${esc(r.id)}" title="Delete" aria-label="Delete">${ic("trash")}</button>` : ""}
           </div></td></tr>`).join("") + `</tbody></table></div>` + pager;
   } else {
     const matching = stats
@@ -1550,11 +1558,17 @@ function studentCoursesHTML(s) {
     ? `<table><thead><tr><th>Course</th><th class="num">Attended</th><th class="num">Attendance</th></tr></thead><tbody>${s.courses.map(c => `
         <tr class="${c.standing === "below" ? "below-row" : c.standing === "limit" ? "limit-row" : ""}">
           <td class="c-name"><div class="two"><b>${esc(c.course)}</b><small>${COURSES[c.course]?.credits ?? "–"} credits · ${
-            c.standing === "below" ? "below the limit" : c.standing === "limit" ? "on the limit" : "within the limit"} (limit: ${c.total - c.onLimit} out of ${c.total})</small></div></td>
+            c.standing === "below" ? "below the limit" : c.standing === "limit" ? "on the limit" : "within the limit"} (${c.total > c.onLimit ? `limit: ${c.total - c.onLimit} out of ${c.total}` : `limit: ${c.onLimit} missed`})</small></div></td>
           <td class="num"><span class="${c.standing === "below" ? "t-bad pct" : c.standing === "limit" ? "t-warn pct" : ""}">${c.attended}</span><span class="sub"> out of ${c.total}</span></td>
           <td class="num">${c.pct}%</td>
         </tr>`).join("")}</tbody></table>`
     : `<div class="empty">No lectures recorded yet.</div>`;
+}
+
+// Only one popup at a time: a quick double click must not stack two.
+function openModal(bg) {
+  document.querySelectorAll(".modal-bg").forEach(m => m.remove());
+  document.body.appendChild(bg);
 }
 
 function showStudent(reg) {
@@ -1572,20 +1586,20 @@ function showStudent(reg) {
     <div class="modal-body">${studentCoursesHTML(s)}</div>
     <div class="modal-foot"><button class="btn" data-close>Close</button></div></div>`;
   const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
-  const onKey = e => { if (e.key === "Escape") close(); };
+  const onKey = e => { if (!bg.isConnected) return document.removeEventListener("keydown", onKey); if (e.key === "Escape") close(); };
   bg.addEventListener("click", e => { if (e.target === bg || e.target.closest("[data-close]")) close(); });
   document.addEventListener("keydown", onKey);
-  document.body.appendChild(bg);
+  openModal(bg);
   bg.querySelector(".modal-foot .btn").focus();
 }
 
 function showLecture(rec) {
   const present = rec.roster.length - rec.absent.length, absent = new Set(rec.absent);
   const saved = rec.createdAt
-    ? `Saved ${fmtDate(rec.createdAt.slice(0, 10))}${rec.createdBy ? " by " + esc(rec.createdBy) : ""}`
+    ? `Saved ${fmtDate(localISO(new Date(rec.createdAt)))}${rec.createdBy ? " by " + esc(rec.createdBy) : ""}`
     : "";
   const studentRow = reg => `<tr class="${absent.has(reg) ? "below-row" : ""}" data-absent="${absent.has(reg)}">
-      <td class="sub nowrap">${reg}</td><td class="c-name">${esc(BY_REG.get(reg)?.name ?? "")}</td>
+      <td class="sub nowrap">${esc(reg)}</td><td class="c-name">${esc(BY_REG.get(reg)?.name ?? "")}</td>
       <td class="num"><span class="status ${absent.has(reg) ? "bad" : "ok"}">${absent.has(reg) ? "Absent" : "Present"}</span></td></tr>`;
 
   const bg = document.createElement("div"); bg.className = "modal-bg";
@@ -1593,7 +1607,7 @@ function showLecture(rec) {
     <div class="modal-head">
       <div style="flex:1;min-width:0">
         <h3>${esc(rec.subject)}</h3>
-        <p>${fmtDate(rec.date)}${rec.slot ? " · " + slotLabel(rec) : ""}</p>
+        <p>${fmtDate(rec.date)}${rec.slot ? " · " + esc(slotLabel(rec)) : ""}</p>
       </div>
       <button class="icon-btn" data-close title="Close" aria-label="Close">${ic("x")}</button>
     </div>
@@ -1633,7 +1647,7 @@ function showLecture(rec) {
     bg.querySelector("#lecture-none").hidden = shown > 0;
   };
   const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
-  const onKey = e => { if (e.key === "Escape") close(); };
+  const onKey = e => { if (!bg.isConnected) return document.removeEventListener("keydown", onKey); if (e.key === "Escape") close(); };
   bg.addEventListener("click", e => {
     if (e.target === bg || e.target.closest("[data-close]")) return close();
     if (e.target.closest("[data-dl]")) return downloadLectureExcel(rec);
@@ -1645,7 +1659,7 @@ function showLecture(rec) {
   });
   bg.addEventListener("input", e => { if (e.target.id === "lecture-search") applyFilter(); });
   document.addEventListener("keydown", onKey);
-  document.body.appendChild(bg);
+  openModal(bg);
 }
 
 function onPagerClick(key) {
@@ -1663,6 +1677,7 @@ $("sub-students").addEventListener("click", e => {
   const row = e.target.closest("tr[data-reg]"); if (row) showStudent(row.dataset.reg);
 });
 $("sub-lectures").addEventListener("keydown", e => {
+  if (e.target.closest("button")) return;   // let the row's own buttons work
   const row = e.target.closest("tr[data-lecture]");
   if (row && (e.key === "Enter" || e.key === " ")) {
     e.preventDefault();
@@ -1692,7 +1707,8 @@ $("sub-lectures").addEventListener("click", async e => {
   }
 });
 
-FILTER_IDS.forEach(id => $(id).addEventListener("input", renderDash));
+FILTER_IDS.forEach(id => $(id).addEventListener("input", () => renderDash()));
+["d-from", "d-to"].forEach(id => $(id).addEventListener("change", () => renderDash()));
 $("btn-reset-filters").addEventListener("click", () => { FILTER_IDS.forEach(id => $(id).value = ""); renderDash(); });
 $("table-search").addEventListener("input", renderDash);
 let standingFilter = "all";
@@ -1717,6 +1733,7 @@ $("btn-export-all").addEventListener("click", () => downloadCombinedExcel(filter
 // The counts are shortcuts: each opens the student list filtered to those students.
 document.querySelectorAll(".stats [data-standing]").forEach(b => b.addEventListener("click", () => {
   setStandingFilter(b.dataset.standing);
+  if (subTab !== "students") $("table-search").value = "";
   subTab = "students";
   $("subtabs").querySelectorAll("[data-sub]").forEach(x => x.classList.toggle("active", x.dataset.sub === "students"));
   renderDash();
@@ -1878,8 +1895,13 @@ $("restore-file").addEventListener("change", async e => {
     const incoming = Array.isArray(data) ? data : data.records;
     if (!Array.isArray(incoming)) throw new SyntaxError();
     const ids = new Set(records.map(r => r.id));
-    const valid = incoming.filter(r => r && r.id && r.date && Array.isArray(r.absent) && Array.isArray(r.roster));
-    const added = await store.add(valid.filter(r => !ids.has(r.id)));
+    const lectureKey = r => `${r.date}|${r.slot}|${r.subject}`;
+    const keys = new Set(records.map(lectureKey));
+    const valid = incoming
+      .filter(r => r && r.id && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && typeof r.subject === "string" && r.subject
+        && Array.isArray(r.absent) && Array.isArray(r.roster) && r.roster.length)
+      .map(r => ({ ...r, slot: r.slot || "", prof: r.prof || "", hall: r.hall || "", createdAt: r.createdAt || new Date().toISOString() }));
+    const added = await store.add(valid.filter(r => !ids.has(r.id) && !keys.has(lectureKey(r))));
     records = records.concat(added); renderDash();
     toast(`Restored ${added.length} lecture(s)${valid.length - added.length ? `, skipped ${valid.length - added.length} already present` : ""}`);
   } catch (err) { alert(err instanceof SyntaxError ? "That file isn't a valid IncAttendance backup." : "Couldn't restore: " + errText(err)); }
@@ -1901,6 +1923,7 @@ function canDelete(r) {
 const allowedTabs = () => Object.keys(TAB_ROLES).filter(t => TAB_ROLES[t].includes(access.role) && (t !== "access" || ONLINE));
 
 function showTab(name) {
+  document.querySelectorAll(".combo.open").forEach(c => c.closeCombo());
   document.querySelectorAll(".tabs [data-tab]").forEach(x => x.classList.toggle("active", x.dataset.tab === name));
   for (const t of Object.keys(TAB_ROLES)) $("tab-" + t).hidden = t !== name;
   if (name === "dash") renderDash();
@@ -2002,7 +2025,10 @@ $("btn-save-emails").addEventListener("click", async () => {
   const { data: current, error: readError } = await sb.from("students").select("reg, email");
   if (readError) return alert("Couldn't save: " + errText(readError));
   const listed = new Set(links.map(l => l.reg));
-  current.filter(x => x.email && !listed.has(x.reg)).forEach(x => links.push({ reg: x.reg, email: "" }));  // removed lines unlink
+  const unlinking = current.filter(x => x.email && !listed.has(x.reg));   // lines that were removed
+  if (unlinking.length && !confirm(`${plural(unlinking.length, "student")} will be unlinked and won't be able to sign in:\n\n` +
+      unlinking.slice(0, 10).map(x => `${x.reg}  ${x.email}`).join("\n") + (unlinking.length > 10 ? "\n…" : "") + "\n\nContinue?")) return;
+  unlinking.forEach(x => links.push({ reg: x.reg, email: "" }));
   const { error } = await sb.rpc("set_student_emails", { p_links: links });
   if (error) return alert("Couldn't save: " + errText(error));
   toast("Student emails saved");
@@ -2026,6 +2052,14 @@ async function boot() {
   showGate("loading");
   const fail = msg => { $("loading-text").textContent = msg; showGate("loading"); };
   if (!sb) return fail("Couldn't load the sign-in library. Check the internet connection and reload.");
+  try {
+    await connect(fail);
+  } catch (e) {
+    fail("Couldn't reach the attendance database: " + errText(e) + ". Check the internet connection and reload.");
+  }
+}
+
+async function connect(fail) {
   let { data: { session } } = await sb.auth.getSession();
   if (!session && CFG.prototypeNoLogin) {
     // Prototype mode: no sign-in screen. Sign in silently; the database decides the role.

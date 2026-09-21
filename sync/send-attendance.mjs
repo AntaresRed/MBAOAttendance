@@ -27,7 +27,13 @@ const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
 const option = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
-  return i !== -1 && args[i + 1] ? args[i + 1] : fallback;
+  if (i === -1) return fallback;
+  const value = args[i + 1];
+  if (!value || value.startsWith("--")) {   // e.g. "--out --live": the next word is another flag, not a value
+    console.error(`--${name} needs a value`);
+    process.exit(1);
+  }
+  return value;
 };
 
 const CFG = {
@@ -223,6 +229,9 @@ async function main() {
   const started = Date.now();
   if (!CFG.supabaseUrl || !CFG.serviceKey) fail("set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see sync/.env.example)");
   if (!Number.isInteger(CFG.pageSize) || CFG.pageSize < 1 || CFG.pageSize > 500) fail("--page-size must be between 1 and 500");
+  if (CFG.asOf && !(/^\d{4}-\d{2}-\d{2}$/.test(CFG.asOf) && !isNaN(new Date(CFG.asOf + "T00:00")))) {
+    fail(`--as-of must be a date like 2026-09-19 (got "${CFG.asOf}")`);
+  }
 
   const asOf = CFG.asOf || await callFunction("sync_as_of");
   if (!asOf) fail("no attendance has been saved yet, so there is nothing to send");
